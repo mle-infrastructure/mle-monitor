@@ -12,7 +12,7 @@ import plotext as plt
 
 from mle_toolbox import mle_config
 from mle_toolbox.utils import determine_resource
-from mle_toolbox.protocol import protocol_summary, generate_protocol_table
+from ..protocol import protocol_summary, generate_protocol_table
 
 
 class Header:

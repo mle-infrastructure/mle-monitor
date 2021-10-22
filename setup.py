@@ -20,7 +20,7 @@ def parse_requirements(path: str) -> List[str]:
         ]
 
 
-VERSIONFILE = "mle_hyperopt/_version.py"
+VERSIONFILE = "mle_monitor/_version.py"
 verstrline = open(VERSIONFILE, "rt").read()
 VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
 mo = re.search(VSRE, verstrline, re.M)
@@ -32,7 +32,7 @@ git_tar = f"https://github.com/RobertTLange/mle-monitor/archive/v{verstr}.tar.gz
 
 
 setup(
-    name="mle_hyperopt",
+    name="mle_monitor",
     version=verstr,
     author="Robert Tjarko Lange",
     author_email="robertlange0@gmail.com",
