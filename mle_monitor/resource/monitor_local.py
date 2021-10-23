@@ -1,21 +1,7 @@
 from datetime import datetime
 import numpy as np
-
-
-try:
-    import psutil
-except ModuleNotFoundError as err:
-    raise ModuleNotFoundError(
-        f"{err}. You need to install `psutil` " "to monitor local CPU resources."
-    )
-
-
-try:
-    import GPUtil
-except ModuleNotFoundError as err:
-    raise ModuleNotFoundError(
-        f"{err}. You need to install `gputil` " "to monitor local GPU resources."
-    )
+import psutil
+import GPUtil
 
 
 def get_local_data():

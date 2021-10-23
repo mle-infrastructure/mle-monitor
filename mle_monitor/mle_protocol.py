@@ -18,7 +18,7 @@ class MLEProtocol(object):
         )
 
     def get(self, experiment_id, var_name):
-        """ Retrieve variable from database. """
+        """Retrieve variable from database."""
         return self.db.dget(experiment_id, var_name)
 
     def save(self, save: bool = True):
@@ -28,11 +28,7 @@ class MLEProtocol(object):
     def add(self, job_config, resource_to_run, cmd_purpose, save: bool = True):
         """Add an experiment to the database."""
         self.db, new_experiment_id, purpose = protocol_experiment(
-            self.db,
-            self.last_experiment_id,
-            job_config,
-            resource_to_run,
-            cmd_purpose
+            self.db, self.last_experiment_id, job_config, resource_to_run, cmd_purpose
         )
         if save:
             self.save()

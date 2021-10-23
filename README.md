@@ -23,5 +23,18 @@ from mle_monitor import MLEProtocol
 You can run the test suite via `python -m pytest -vv tests/`. If you find a bug or are missing your favourite feature, feel free to contact me [@RobertTLange](https://twitter.com/RobertTLange) or create an issue :hugs:. Here are some features I want to implement for the next release:
 
 - [ ] `MLEProtocol`
+  - Make modular (core + extra) data to protocol
 - [ ] `MLEResource`
+  - Move `get_xyz_data` into resource class
 - [ ] `MLEDashboard`
+  - Add snapshot function
+  - Get dashboard even without protocol usage?!
+- [ ] Add gcloud db pull/send to `MLEProtocol`
+  - credentials path as option
+  - `protocol_db.pull_gcs()`, `protocol_db.send_gcs()`
+- [ ] Make `mle-monitor` independent of `mle-toolbox`
+- [ ] Make `mle-toolbox` work by default without `mle-hyperopt` and `mle-monitor`
+- [ ] Add test suite
+  - [ ] Protocol (add, delete, store, etc.)
+  - [ ] Resource (resource detection?)
+  - [ ] Dashboard (data correctness?)

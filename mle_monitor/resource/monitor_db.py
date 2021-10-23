@@ -2,12 +2,12 @@ import os
 import datetime as dt
 
 
-def get_db_data(db, all_e_ids):
+def get_db_data(db):
     """Helper to get all data from pickledb database."""
     if len(all_e_ids) > 0:
-        total_data = get_total_experiments(db, all_e_ids)
-        last_data = get_last_experiment(db, all_e_ids[-1])
-        time_data = get_time_experiment(db, all_e_ids[-1])
+        total_data = get_total_experiments(db, db.experiment_ids)
+        last_data = get_last_experiment(db, db.experiment_ids[-1])
+        time_data = get_time_experiment(db, db.experiment_ids[-1])
     else:
         total_data = {
             "total": "0",
@@ -47,7 +47,7 @@ def get_total_experiments(db, all_experiment_ids):
     run, done, aborted, sge, slurm, gcp, local = 0, 0, 0, 0, 0, 0, 0
     report_gen, gcs_stored, retrieved = 0, 0, 0
     for e_id in all_experiment_ids:
-        status = db.dget(e_id, "job_status")
+        status = db.get(e_id, "job_status")
         # Job status
         run += status == "running"
         done += status == "completed"
@@ -60,9 +60,9 @@ def get_total_experiments(db, all_experiment_ids):
         local += resource not in ["sge-cluster", "slurm-cluster", "gcp-cloud"]
         # Additional data: Report generated, GCS stored, Results retrieved
         try:
-            report_gen += db.dget(e_id, "report_generated")
-            gcs_stored += db.dget(e_id, "stored_in_gcloud")
-            retrieved += db.dget(e_id, "retrieved_results")
+            report_gen += db.get(e_id, "report_generated")
+            gcs_stored += db.get(e_id, "stored_in_gcloud")
+            retrieved += db.get(e_id, "retrieved_results")
         except Exception:
             pass
     # Return results dictionary
@@ -84,9 +84,9 @@ def get_total_experiments(db, all_experiment_ids):
 
 def get_time_experiment(db, last_experiment_id):
     """Get data from db to show in 'time_experiment' panel."""
-    meta_args = db.dget(last_experiment_id, "meta_job_args")
-    job_spec_args = db.dget(last_experiment_id, "job_spec_args")
-    single_job_args = db.dget(last_experiment_id, "single_job_args")
+    meta_args = db.get(last_experiment_id, "meta_job_args")
+    job_spec_args = db.get(last_experiment_id, "job_spec_args")
+    single_job_args = db.get(last_experiment_id, "single_job_args")
 
     if meta_args["experiment_type"] == "hyperparameter-search":
         search_resources = job_spec_args["search_resources"]
@@ -117,7 +117,7 @@ def get_time_experiment(db, last_experiment_id):
         total_batches = 1
         jobs_per_batch = "-"
 
-    start_time = db.dget(last_experiment_id, "start_time")
+    start_time = db.get(last_experiment_id, "start_time")
 
     if "time_per_job" in single_job_args.keys():
         time_per_batch = single_job_args["time_per_job"]
@@ -136,7 +136,7 @@ def get_time_experiment(db, last_experiment_id):
 
         # Check if last experiment has already terminated!
         try:
-            stop_time = db.dget(last_experiment_id, "stop_time")
+            stop_time = db.get(last_experiment_id, "stop_time")
         except Exception:
             start_date = dt.datetime.strptime(start_time, "%m/%d/%Y %H:%M:%S")
             end_date = start_date + dt.timedelta(
@@ -166,9 +166,8 @@ def get_time_experiment(db, last_experiment_id):
 def get_last_experiment(db, last_experiment_id):
     """Get data from db to show in 'last_experiments' panel."""
     # Return results dictionary
-    # e_path = db.dget(last_experiment_id, "exp_retrieval_path")
-    meta_args = db.dget(last_experiment_id, "meta_job_args")
-    job_spec_args = db.dget(last_experiment_id, "job_spec_args")
+    meta_args = db.get(last_experiment_id, "meta_job_args")
+    job_spec_args = db.get(last_experiment_id, "job_spec_args")
     e_type = meta_args["experiment_type"]
     e_dir = meta_args["experiment_dir"]
     e_script = meta_args["base_train_fname"]
@@ -190,15 +189,11 @@ def get_last_experiment(db, last_experiment_id):
     if e_type == "hyperparameter-search":
         results["search_type"] = job_spec_args["search_config"]["search_type"]
         try:
-            results["eval_metrics"] = job_spec_args["search_logging"][
-                "eval_metrics"
-            ]  # noqa: E501
+            results["eval_metrics"] = job_spec_args["search_logging"]["eval_metrics"]
         except Exception:
             # No eval metric provided (case of no .hdf5 logging) - leave blank
             results["eval_metrics"] = "-"
-        results["params_to_search"] = job_spec_args["search_config"][
-            "search_params"
-        ]  # noqa: E501
+        results["params_to_search"] = job_spec_args["search_config"]["search_params"]
     elif e_type == "multiple-experiments":
         results["config_fnames"] = job_spec_args["config_fnames"]
     return results

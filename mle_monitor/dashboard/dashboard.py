@@ -17,8 +17,7 @@ from .components import (
     make_memory_util_plot,
 )
 
-from ..monitor.monitor_gcp import get_gcp_data
-from ..monitor.monitor_db import get_db_data
+from ..resource import get_gcp_data, get_db_data
 
 """
 TODOs:
@@ -82,17 +81,15 @@ def layout_mle_dashboard(resource) -> Layout:
     return layout
 
 
-def update_mle_dashboard(
-    layout, resource, util_hist, db, all_experiment_ids, last_experiment_id
-):
+def update_mle_dashboard(layout, resource, util_hist, protocol_db):
     """Helper function that fills dashboard with life!"""
     # Get resource dependent data
     if resource == "sge-cluster":
-        from ..monitor.monitor_sge import get_sge_data
+        from ..resource import get_sge_data
 
         user_data, host_data, util_data = get_sge_data()
     elif resource == "slurm-cluster":
-        from ..monitor.monitor_slurm import get_slurm_data
+        from ..resource import get_slurm_data
 
         user_data, host_data, util_data = get_slurm_data()
     else:  # Local!
@@ -104,7 +101,7 @@ def update_mle_dashboard(
     gcp_data = get_gcp_data()
 
     # Get resource independent data
-    total_data, last_data, time_data = get_db_data(db, all_experiment_ids)
+    total_data, last_data, time_data = get_db_data(protocol_db)
 
     # Add utilisation data to storage dictionaries
     util_hist["times_date"].append(util_data["time_date"])
