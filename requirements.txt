@@ -1,3 +1,6 @@
+pyyaml
+commentjson
+dotmap
 numpy
 pandas
 rich==9.13.0

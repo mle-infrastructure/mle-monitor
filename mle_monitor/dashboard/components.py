@@ -12,7 +12,7 @@ import plotext as plt
 
 from mle_toolbox import mle_config
 from mle_toolbox.utils import determine_resource
-from ..protocol import protocol_summary, generate_protocol_table
+from ..protocol import protocol_summary, protocol_table
 
 
 class Header:
@@ -266,7 +266,7 @@ def make_process_panel_local(proc_data) -> Align:
 def make_protocol() -> Table:
     """Generate rich table summarizing experiment protocol summary."""
     df = protocol_summary(tail=29, verbose=False)
-    table = generate_protocol_table(df)
+    table = protocol_table(df)
     return Align.center(table)
 
 

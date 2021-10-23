@@ -2,21 +2,18 @@ import re
 import pickledb
 import pandas as pd
 from datetime import datetime
-import sys
-import select
-from typing import Union, List
 
+from rich import box
+from rich.table import Table
+from rich.spinner import Spinner
 from rich.console import Console
 from rich.align import Align
 
-from mle_toolbox import mle_config
-from ..protocol.protocol_table import generate_protocol_table
 
-
-def load_local_protocol_db():
+def load_protocol_db(protocol_fname):
     """Load local database from config name & reconstruct experiment id."""
     # Attempt loading local protocol database - otherwise return clean one
-    db = pickledb.load(mle_config.general.local_protocol_fname, False)
+    db = pickledb.load(protocol_fname, False)
     # Get the most recent experiment id
     all_experiment_ids = list(db.getall())
 
@@ -37,10 +34,8 @@ def load_local_protocol_db():
     return db, all_experiment_ids, last_experiment_id
 
 
-def protocol_summary(tail: int = 5, verbose: bool = True):
+def protocol_summary(db, all_experiment_ids, tail: int = 5, verbose: bool = True):
     """Construct a summary dataframe of previous experiments."""
-    # Load in the DB
-    db, all_experiment_ids, last_experiment_id = load_local_protocol_db()
     # Set pandas df format option to print
     pd.set_option("display.max_columns", 5)
     pd.set_option("max_colwidth", 30)
@@ -129,7 +124,7 @@ def protocol_summary(tail: int = 5, verbose: bool = True):
         # Print a nice table overview (no job resources)
         if verbose:
             console = Console()
-            table = Align.left(generate_protocol_table(df, full=False))
+            table = Align.left(protocol_table(df, full=False))
             console.print(table)
         return df
     else:
@@ -138,63 +133,70 @@ def protocol_summary(tail: int = 5, verbose: bool = True):
         return None
 
 
-def update_protocol_var(
-    experiment_id: str,
-    db_var_name: Union[List[str], str],
-    db_var_value: Union[list, str, dict],
-):
-    """Update variable(s) stored in protocol db for an experiment."""
-    # Load in the DB
-    db, all_experiment_ids, last_experiment_id = load_local_protocol_db()
-    # Update the variable(s) of the experiment
-    if type(db_var_name) == list:
-        for db_v_id in range(len(db_var_name)):
-            db.dadd(experiment_id, (db_var_name[db_v_id], db_var_value[db_v_id]))
-    else:
-        db.dadd(experiment_id, (db_var_name, db_var_value))
-    db.dump()
-    return db
+def protocol_table(df, full=True):
+    """Generate pretty table of experiment protocol db - preselected db."""
+    table = Table(show_header=True, show_footer=False, header_style="bold blue")
+    sta_str = "[green]:heavy_check_mark:[/green]/[red]:heavy_multiplication_x:"
+    table.add_column(sta_str, justify="center")
+    table.add_column("E-ID")
+    table.add_column("Date")
+    table.add_column("Project")
+    table.add_column("Purpose")
+    table.add_column("Type")
+    table.add_column("[yellow]:arrow_forward:", justify="center")
 
+    # Full option prints also resource requirements of jobs
+    if full:
+        table.add_column("#Jobs", justify="center")
+        table.add_column("#CPU", justify="center")
+        table.add_column("#GPU", justify="center")
+        table.add_column("[yellow]:recycle:", justify="center")
 
-def manipulate_protocol_from_input(delete: bool = False, abort: bool = False):
-    """Ask user if they want to delete previous experiment by id."""
-    time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
-    if delete:
-        q_str = "{} Want to delete experiment? - state its id: [e_id/N]"
-    elif abort:
-        q_str = "{} Want to set exp. status to aborted? - state its id: [e_id/N]"
-    print(q_str.format(time_t), end=" ")
-    sys.stdout.flush()
-    # Loop over experiments to delete until "N" given or timeout after 60 secs
-    while True:
-        i, o, e = select.select([sys.stdin], [], [], 60)
-        if i:
-            e_id = sys.stdin.readline().strip()
-            if e_id == "N":
-                break
-        else:
-            break
+    # Add rows of info if dataframe exists (previously recorded experiments)
+    if df is not None:
+        for index in reversed(df.index):
+            row = df.iloc[index]
+            if row["Resource"] == "sge-cluster":
+                resource = "SGE"
+            elif row["Resource"] == "slurm-cluster":
+                resource = "Slurm"
+            elif row["Resource"] == "gcp-cloud":
+                resource = "GCP"
+            else:
+                resource = "Local"
 
-        # Make sure e_id can access db via key
-        if e_id[:5] != "e-id-":
-            e_id = "e-id-" + e_id
+            if row["Status"] == "running":
+                status = Spinner("dots", style="magenta")
+            elif row["Status"] == "completed":
+                status = "[green]:heavy_check_mark:"
+            else:
+                status = "[red]:heavy_multiplication_x:"
 
-        # Load in the experiment protocol DB
-        db, all_experiment_ids, _ = load_local_protocol_db()
-        # Delete the dictionary in DB corresponding to e-id
-        try:
-            if delete:
-                db.drem(e_id)
-            elif abort:
-                db.dadd(e_id, ("job_status", "aborted"))
-            db.dump()
-            print(
-                "{} Another one? - state the next id: [e_id/N]".format(time_t), end=" "
-            )
-        except Exception:
-            print(
-                "\n{} The e_id is not in the protocol db. "
-                "Please try again: [e_id/N]".format(time_t),
-                end=" ",
-            )
-        sys.stdout.flush()
+            if full:
+                table.add_row(
+                    status,
+                    row["ID"],
+                    row["Date"],
+                    row["Project"][:20],
+                    row["Purpose"][:25],
+                    row["Type"],
+                    resource,
+                    str(row["Jobs"]),
+                    str(row["CPUs"]),
+                    str(row["GPUs"]),
+                    str(row["Seeds"]),
+                )
+            else:
+                table.add_row(
+                    status,
+                    row["ID"],
+                    row["Date"],
+                    row["Project"][:20],
+                    row["Purpose"][:25],
+                    row["Type"],
+                    resource,
+                )
+
+    table.border_style = "blue"
+    table.box = box.SIMPLE_HEAD
+    return table

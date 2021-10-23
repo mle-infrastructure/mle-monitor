@@ -5,17 +5,17 @@ from datetime import datetime
 import sys
 import select
 from typing import Union
-from mle_logging.utils import load_json_config, load_yaml_config
-from .protocol_helpers import load_local_protocol_db
+from .utils import load_json_config, load_yaml_config
 
 
 def protocol_experiment(
-    job_config: dict, resource_to_run: str, cmd_purpose: Union[None, str] = None
+    db,
+    last_experiment_id,
+    job_config: dict,
+    resource_to_run: str,
+    cmd_purpose: Union[None, str] = None,
 ):
     """Protocol the new experiment."""
-    # Load in the DB
-    db, all_experiment_ids, last_experiment_id = load_local_protocol_db()
-
     # Create a new db experiment entry
     new_experiment_id = "e-id-" + str(last_experiment_id + 1)
     db.dcreate(new_experiment_id)
@@ -158,7 +158,4 @@ def protocol_experiment(
     db.dadd(new_experiment_id, ("job_status", "running"))
     time_t = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
     db.dadd(new_experiment_id, ("start_time", time_t))
-
-    # Save the newly updated DB to the file
-    db.dump()
-    return new_experiment_id, purpose
+    return db, new_experiment_id, purpose

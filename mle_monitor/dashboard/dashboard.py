@@ -89,12 +89,15 @@ def update_mle_dashboard(
     # Get resource dependent data
     if resource == "sge-cluster":
         from ..monitor.monitor_sge import get_sge_data
+
         user_data, host_data, util_data = get_sge_data()
     elif resource == "slurm-cluster":
         from ..monitor.monitor_slurm import get_slurm_data
+
         user_data, host_data, util_data = get_slurm_data()
     else:  # Local!
         from ..monitor.monitor_local import get_local_data
+
         proc_data, device_data, util_data = get_local_data()
 
     # Get GCP Cloud data
