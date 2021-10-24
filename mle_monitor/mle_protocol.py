@@ -6,13 +6,37 @@ from .protocol import load_protocol_db, protocol_summary, protocol_experiment
 
 
 class MLEProtocol(object):
-    def __init__(self, protocol_fname: str):
+    def __init__(
+        self,
+        protocol_fname: str,
+        use_gcs_sync: bool = False,
+        project_name: Union[str, None] = None,
+        bucket_name: Union[str, None] = None,
+        gcs_protocol_fname: Union[str, None] = None,
+        local_protocol_fname: Union[str, None] = None,
+        gcs_credentials_path: Union[str, None] = None,
+    ):
         """MLE Protocol DB Instance."""
         self.protocol_fname = protocol_fname
+        self.use_gcs_sync = use_gcs_sync
+        self.project_name = project_name
+        self.bucket_name = bucket_name
+        self.gcs_protocol_fname = gcs_protocol_fname
+        self.local_protocol_fname = local_protocol_fname
+        self.gcs_credentials_path = gcs_credentials_path
+
+        if self.use_gcs_sync:
+            from .protocol.gcs_sync import set_gcp_credentials
+
+            # Set the path to the GCP credentials json file & pull recent db
+            set_gcp_credentials(self.gcs_credentials_path)
         self.load()
 
-    def load(self):
+    def load(self, pull_gcs: bool = True):
         """Load the protocol data from a local pickle file."""
+        if self.use_gcs_sync:
+            if pull_gcs:
+                self.accessed_gcs = self.gcs_pull()
         self.db, self.experiment_ids, self.last_experiment_id = load_protocol_db(
             self.protocol_fname
         )
@@ -109,6 +133,30 @@ class MLEProtocol(object):
                     end=" ",
                 )
             sys.stdout.flush()
+
+    def gcs_send(self):
+        """Send the local protocol to a GCS bucket."""
+        from .protocol.gcs_sync import send_gcloud_db
+
+        send_db = send_gcloud_db(
+            self.project_name,
+            self.bucket_name,
+            self.gcs_protocol_fname,
+            self.local_protocol_fname,
+        )
+        return send_db
+
+    def gcs_pull(self):
+        """Pull the remote protocol from a GCS bucket."""
+        from .protocol.gcs_sync import get_gcloud_db
+
+        accessed_db = get_gcloud_db(
+            self.project_name,
+            self.bucket_name,
+            self.gcs_protocol_fname,
+            self.local_protocol_fname,
+        )
+        return accessed_db
 
     def __len__(self) -> int:
         """Return number of experiments stored in protocol."""

@@ -2,8 +2,6 @@ import time
 from rich.live import Live
 from .mle_protocol import MLEProtocol
 from .dashboard import layout_mle_dashboard, update_mle_dashboard
-from mle_toolbox import mle_config
-from mle_toolbox.remote.gcloud_transfer import get_gcloud_db
 
 
 class MLEDashboard(object):
@@ -45,14 +43,12 @@ class MLEDashboard(object):
 
                     # Every 10 seconds reload local database file
                     if time.time() - timer_db > 10:
-                        self.protocol_db.load()
+                        self.protocol_db.load(pull_gcs=False)
                         timer_db = time.time()
 
                     # Every 10 minutes pull the newest DB from GCS
                     if time.time() - timer_gcs > 600:
-                        if mle_config.general.use_gcloud_protocol_sync:
-                            _ = get_gcloud_db()
-                            self.protocol_db.load()
+                        self.protocol_db.load()
                         timer_gcs = time.time()
 
                     # Truncate/Limit memory to approx. last 27 hours

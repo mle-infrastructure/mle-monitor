@@ -7,16 +7,29 @@
 
 `mle-monitor` provides three core functionalities:
 
-- **`MLEProtocol`**: A lightweight & customisable protocol database API for ML experiments.
+- **`MLEProtocol`**: A composable protocol database API for ML experiments.
 - **`MLEResource`**: A tool for obtaining cluster usage statistics (Slurm & GridEngine).
 - **`MLEDashboard`**: A dashboard visualizing both resource usage and experiment protocol.
 
-## The API 🎮
+## The `MLEProtocol` API 🎮
 
 ```python
 from mle_monitor import MLEProtocol
 ```
 
+- Talk about GCS synchronization
+
+## The `MLEResource` API 🎮
+
+```python
+from mle_monitor import MLEResource
+```
+
+## The `MLEDashboard` API 🎮
+
+```python
+from mle_monitor import MLEDashboard
+```
 
 ## Development & Milestones for Next Release
 
@@ -24,8 +37,10 @@ You can run the test suite via `python -m pytest -vv tests/`. If you find a bug 
 
 - [ ] `MLEProtocol`
   - Make modular (core + extra) data to protocol
+  - Integrate GCS synchronization
 - [ ] `MLEResource`
-  - Move `get_xyz_data` into resource class
+  - Move `get_xyz_data` into resource classes
+  - Return standardized monitoring data
 - [ ] `MLEDashboard`
   - Add snapshot function
   - Get dashboard even without protocol usage?!
