@@ -2,9 +2,9 @@ import os
 import datetime as dt
 
 
-def get_db_data(db):
+def get_monitor_db_data(db):
     """Helper to get all data from pickledb database."""
-    if len(all_e_ids) > 0:
+    if len(db.experiment_ids) > 0:
         total_data = get_total_experiments(db, db.experiment_ids)
         last_data = get_last_experiment(db, db.experiment_ids[-1])
         time_data = get_time_experiment(db, db.experiment_ids[-1])
@@ -53,7 +53,7 @@ def get_total_experiments(db, all_experiment_ids):
         done += status == "completed"
         aborted += status not in ["running", "completed"]
         # Execution resource data
-        resource = db.dget(e_id, "exec_resource")
+        resource = db.get(e_id, "exec_resource")
         sge += resource == "sge-cluster"
         slurm += resource == "slurm-cluster"
         gcp += resource == "gcp-cloud"

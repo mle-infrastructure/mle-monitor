@@ -2,7 +2,13 @@ from typing import Union, List
 from datetime import datetime
 import sys
 import select
-from .protocol import load_protocol_db, protocol_summary, protocol_experiment
+from .protocol import (
+    load_protocol_db,
+    protocol_summary,
+    protocol_experiment,
+    protocol_table,
+    get_monitor_db_data,
+)
 
 
 class MLEProtocol(object):
@@ -87,9 +93,11 @@ class MLEProtocol(object):
         if save:
             self.save()
 
-    def summary(self, tail: int = 5, verbose: bool = True):
+    def summary(self, tail: int = 5, verbose: bool = True, return_table: bool = False):
         """Print a rich summary table of all experiments in db."""
         summary = protocol_summary(self.db, self.experiment_ids, tail, verbose)
+        if return_table:
+            return protocol_table(summary)
         return summary
 
     def ask_user(self, delete: bool = False, abort: bool = False):
@@ -133,6 +141,12 @@ class MLEProtocol(object):
                     end=" ",
                 )
             sys.stdout.flush()
+
+    def monitor(self):
+        """Get monitoring data used in dashboard."""
+        total_data, last_data, time_data = get_monitor_db_data(self)
+        protocol_table = self.summary(tail=29, verbose=False, return_table=True)
+        return total_data, last_data, time_data, protocol_table
 
     def gcs_send(self):
         """Send the local protocol to a GCS bucket."""

@@ -17,8 +17,6 @@ from .components import (
     make_memory_util_plot,
 )
 
-from ..resource.monitor_gcp import get_gcp_data
-from ..resource.monitor_db import get_db_data
 
 """
 TODOs:
@@ -82,28 +80,10 @@ def layout_mle_dashboard(resource) -> Layout:
     return layout
 
 
-def update_mle_dashboard(layout, resource, util_hist, protocol_db):
+def update_mle_dashboard(layout, util_hist, resource_data, protocol_data):
     """Helper function that fills dashboard with life!"""
-    # Get resource dependent data
-    if resource == "sge-cluster":
-        from ..resource.monitor_sge import get_sge_data
-
-        user_data, host_data, util_data = get_sge_data()
-    elif resource == "slurm-cluster":
-        from ..resource.monitor_slurm import get_slurm_data
-
-        user_data, host_data, util_data = get_slurm_data()
-    else:  # Local!
-        from ..resource.monitor_local import get_local_data
-
-        proc_data, device_data, util_data = get_local_data()
-
-    # Get GCP Cloud data
-    gcp_data = get_gcp_data()
-
-    # Get resource independent data
-    total_data, last_data, time_data = get_db_data(protocol_db)
-
+    user_data, host_data, util_data, resource_name = resource_data
+    total_data, last_data, time_data, protocol_table = protocol_data
     # Add utilisation data to storage dictionaries
     util_hist["times_date"].append(util_data["time_date"])
     util_hist["times_hour"].append(util_data["time_hour"])
@@ -113,7 +93,7 @@ def update_mle_dashboard(layout, resource, util_hist, protocol_db):
     util_hist["rel_cpu_util"].append(util_data["cores_util"] / util_data["cores"])
 
     # Fill the left-main with life!
-    if resource in ["sge-cluster", "slurm-cluster"]:
+    if resource_name in ["sge-cluster", "slurm-cluster"]:
         layout["l-box1"].update(
             Panel(
                 make_user_jobs_cluster(user_data),
@@ -131,14 +111,14 @@ def update_mle_dashboard(layout, resource, util_hist, protocol_db):
     else:
         layout["l-box1"].update(
             Panel(
-                make_device_panel_local(device_data),
+                make_device_panel_local(user_data),
                 border_style="red",
                 title="Local - Utilization by Device",
             )
         )
         layout["l-box2"].update(
             Panel(
-                make_process_panel_local(proc_data),
+                make_process_panel_local(host_data),
                 border_style="red",
                 title="Local - Utilization by Process",
             )
@@ -147,7 +127,7 @@ def update_mle_dashboard(layout, resource, util_hist, protocol_db):
     # Fill the center-main with life!
     layout["center"].update(
         Panel(
-            make_protocol(),
+            make_protocol(protocol_table),
             border_style="bright_blue",
             title="Experiment Protocol Summary",
         )
@@ -199,11 +179,11 @@ def update_mle_dashboard(layout, resource, util_hist, protocol_db):
             border_style="red",
         )
     )
-    layout["f-box3"].update(
-        Panel(
-            make_gcp_util(gcp_data), title=("Google Cloud Platform"), border_style="red"
-        )
-    )
+    # layout["f-box3"].update(
+    #     Panel(
+    #         make_gcp_util(gcp_data), title=("Google Cloud Platform"), border_style="red"
+    #     )
+    # )
     layout["f-box4"].update(
         Panel(
             make_help_commands(),

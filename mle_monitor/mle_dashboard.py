@@ -1,13 +1,13 @@
 import time
 from rich.live import Live
-from .mle_protocol import MLEProtocol
+from mle_monitor import MLEProtocol, MLEResource
 from .dashboard import layout_mle_dashboard, update_mle_dashboard
 
 
 class MLEDashboard(object):
-    def __init__(self, protocol_db: MLEProtocol, resource: str):
+    def __init__(self, protocol: MLEProtocol, resource: MLEResource):
         """MLE Resource Dashboard - Rich-based terminal output."""
-        self.protocol_db = protocol_db
+        self.protocol = protocol
         self.resource = resource
 
         # Start storing utilisation history
@@ -25,8 +25,10 @@ class MLEDashboard(object):
         """Run constant monitoring in while loop."""
         # Generate the dashboard layout and display first data
         layout = layout_mle_dashboard(self.resource)
-        layout, util_hist = update_mle_dashboard(
-            layout, self.resource, self.util_hist, self.protocol_db
+        resource_data = self.resource.monitor()
+        protocol_data = self.protocol.monitor()
+        layout, self.util_hist = update_mle_dashboard(
+            layout, self.util_hist, resource_data, protocol_data
         )
 
         # Start timers for GCS pulling and reloading of local protocol db
@@ -37,18 +39,20 @@ class MLEDashboard(object):
         with Live(layout, refresh_per_second=10, screen=True):
             while True:
                 try:
+                    resource_data = self.resource.monitor()
+                    protocol_data = self.protocol.monitor()
                     layout, self.util_hist = update_mle_dashboard(
-                        layout, self.resource, self.util_hist, self.protocol_db
+                        layout, self.util_hist, resource_data, protocol_data
                     )
 
                     # Every 10 seconds reload local database file
                     if time.time() - timer_db > 10:
-                        self.protocol_db.load(pull_gcs=False)
+                        self.protocol.load(pull_gcs=False)
                         timer_db = time.time()
 
                     # Every 10 minutes pull the newest DB from GCS
                     if time.time() - timer_gcs > 600:
-                        self.protocol_db.load()
+                        self.protocol.load()
                         timer_gcs = time.time()
 
                     # Truncate/Limit memory to approx. last 27 hours
