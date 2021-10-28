@@ -1,0 +1,10 @@
+{
+"train_config": {"lrate": 0.1},
+"model_config": {"num_layers": 5},
+"log_config": {"time_to_track": ["step_counter"],
+               "what_to_track": ["loss"],
+               "time_to_print": ["step_counter"],
+               "what_to_print": ["loss"],
+               "print_every_k_updates": 10,
+               "overwrite_experiment_dir": 1}
+}

@@ -111,14 +111,14 @@ def update_mle_dashboard(layout, util_hist, resource_data, protocol_data):
     else:
         layout["l-box1"].update(
             Panel(
-                make_device_panel_local(user_data),
+                make_device_panel_local(host_data),
                 border_style="red",
                 title="Local - Utilization by Device",
             )
         )
         layout["l-box2"].update(
             Panel(
-                make_process_panel_local(host_data),
+                make_process_panel_local(user_data),
                 border_style="red",
                 title="Local - Utilization by Process",
             )
@@ -156,29 +156,32 @@ def update_mle_dashboard(layout, util_hist, resource_data, protocol_data):
         )
     )
 
-    # Fill the footer with life!
-    layout["f-box1"].update(
-        Panel(
-            make_cpu_util_plot(util_hist),
-            title=(
-                "CPU Utilization"
-                f" - Total: {int(util_data['cores_util'])}/"
-                f"{int(util_data['cores'])}T"
+    try:
+        # Fill the footer with life!
+        layout["f-box1"].update(
+            Panel(
+                make_cpu_util_plot(util_hist),
+                title=(
+                    "CPU Utilization"
+                    f" - Total: {int(util_data['cores_util'])}/"
+                    f"{int(util_data['cores'])}T"
+                ),
+                border_style="red",
             ),
-            border_style="red",
-        ),
-    )
-    layout["f-box2"].update(
-        Panel(
-            make_memory_util_plot(util_hist),
-            title=(
-                "Memory Utilization"
-                f" - Total: {int(util_data['mem_util'])}/"
-                f"{int(util_data['mem'])}G"
-            ),
-            border_style="red",
         )
-    )
+        layout["f-box2"].update(
+            Panel(
+                make_memory_util_plot(util_hist),
+                title=(
+                    "Memory Utilization"
+                    f" - Total: {int(util_data['mem_util'])}/"
+                    f"{int(util_data['mem'])}G"
+                ),
+                border_style="red",
+            )
+        )
+    except:
+        pass
     # layout["f-box3"].update(
     #     Panel(
     #         make_gcp_util(gcp_data), title=("Google Cloud Platform"), border_style="red"

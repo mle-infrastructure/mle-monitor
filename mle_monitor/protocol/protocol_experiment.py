@@ -1,48 +1,27 @@
 import os
 import hashlib
 import json
+import datetime as dt
 from datetime import datetime
-import sys
-import select
-from typing import Union
+from typing import Union, Tuple
 from .utils import load_json_config, load_yaml_config
 
 
 def protocol_experiment(
-    db,
-    last_experiment_id,
-    job_config: dict,
-    resource_to_run: str,
-    cmd_purpose: Union[None, str] = None,
+    db, last_experiment_id, standard: dict, extra: Union[dict, None] = None
 ):
-    """Protocol the new experiment."""
+    """Add the new experiment to the protocol database."""
     # Create a new db experiment entry
-    new_experiment_id = "e-id-" + str(last_experiment_id + 1)
+    new_experiment_id = str(last_experiment_id + 1)
     db.dcreate(new_experiment_id)
 
-    # Add purpose of experiment - cmd args or timeout input after 30 secs
-    time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
-    if cmd_purpose is None:
-        print(f"{time_t} Purpose of experiment?", end=" "),
-        sys.stdout.flush()
-        i, o, e = select.select([sys.stdin], [], [], 60)
+    # Add all standard & extra data points to protocol
+    for k, v in standard.items():
+        db.dadd(new_experiment_id, (k, v))
 
-        if i:
-            purpose = sys.stdin.readline().strip()
-        else:
-            purpose = "default"
-    else:
-        purpose = " ".join(cmd_purpose)
-
-    db.dadd(new_experiment_id, ("purpose", purpose))
-
-    # Add the project name
-    db.dadd(
-        new_experiment_id, ("project_name", job_config.meta_job_args["project_name"])
-    )
-
-    # Add resource on which experiment was run
-    db.dadd(new_experiment_id, ("exec_resource", resource_to_run))
+    if extra is not None:
+        for k, v in extra.items():
+            db.dadd(new_experiment_id, (k, v))
 
     # Add the git latest commit hash
     try:
@@ -54,108 +33,75 @@ def protocol_experiment(
         git_hash = "no-git-repo"
     db.dadd(new_experiment_id, ("git_hash", git_hash))
 
-    # Add remote URL to clone repository
-    try:
-        git_remote = g.remote(verbose=True).split("\t")[1].split(" (fetch)")[0]
-    except Exception:
-        git_remote = "no-git-remote"
-    db.dadd(new_experiment_id, ("git_remote", git_remote))
-
-    # Add the absolute path for retrieving the experiment
-    exp_retrieval_path = os.path.join(
-        os.getcwd(), job_config.meta_job_args["experiment_dir"]
-    )
-    db.dadd(new_experiment_id, ("exp_retrieval_path", exp_retrieval_path))
-
-    # Add the meta experiment config
-    db.dadd(new_experiment_id, ("meta_job_args", job_config.meta_job_args))
-    db.dadd(new_experiment_id, ("single_job_args", job_config.single_job_args))
-
-    if (
-        db.dget(new_experiment_id, "meta_job_args")["experiment_type"]
-        == "single-config"
-    ):
-        db.dadd(new_experiment_id, ("job_spec_args", None))
-    elif (
-        db.dget(new_experiment_id, "meta_job_args")["experiment_type"]
-        == "multiple-configs"
-    ):
-        db.dadd(new_experiment_id, ("job_spec_args", job_config.multi_config_args))
-    elif (
-        db.dget(new_experiment_id, "meta_job_args")["experiment_type"]
-        == "hyperparameter-search"
-    ):
-        db.dadd(new_experiment_id, ("job_spec_args", job_config.param_search_args))
-    elif (
-        db.dget(new_experiment_id, "meta_job_args")["experiment_type"]
-        == "population-based-training"
-    ):
-        db.dadd(new_experiment_id, ("job_spec_args", job_config.pbt_args))
-
-    # Add the base config - train, model, log for each given config file
-    if type(job_config.meta_job_args["base_train_config"]) == str:
-        all_config_paths = [job_config.meta_job_args["base_train_config"]]
+    # Add the base config - load from given configuration file(s)
+    if type(standard["config_fname"]) == str:
+        all_config_paths = [standard["config_fname"]]
+    elif type(standard["base_train_config"]) == list:
+        all_config_paths = standard["config_fname"]
     else:
-        all_config_paths = job_config.meta_job_args["base_train_config"]
+        all_config_paths = []
 
+    loaded_configs = []
     for config_path in all_config_paths:
-        train_configs, model_configs, log_configs = [], [], []
         fname, fext = os.path.splitext(config_path)
         if fext == ".json":
             base_config = load_json_config(config_path)
         elif fext == ".yaml":
             base_config = load_yaml_config(config_path)
         else:
-            raise ValueError("Job config has to be .json or .yaml file.")
-        train_configs.append(base_config["train_config"])
-        try:
-            model_configs.append(base_config["model_config"])
-        except Exception:
-            pass
-        log_configs.append(base_config["log_config"])
+            base_config = {}
+        loaded_configs.append(base_config)
 
-    db.dadd(new_experiment_id, ("train_config", train_configs))
-    db.dadd(new_experiment_id, ("model_config", model_configs))
-    db.dadd(new_experiment_id, ("log_config", log_configs))
+    db.dadd(new_experiment_id, ("loaded_config", loaded_configs))
 
-    # Add the number of seeds over which experiment is run
-    if job_config.meta_job_args["experiment_type"] == "hyperparameter-search":
-        num_seeds = job_config.param_search_args.search_resources["num_seeds_per_eval"]
-    elif job_config.meta_job_args["experiment_type"] == "multiple-configs":
-        num_seeds = job_config.multi_config_args["num_seeds"]
-    else:
-        num_seeds = 1
-    db.dadd(new_experiment_id, ("num_seeds", num_seeds))
-
-    # Gen unique experiment config hash - base_config + job_spec_args
-    if job_config.meta_job_args["experiment_type"] == "hyperparameter-search":
-        meta_to_hash = job_config.param_search_args
-    elif job_config.meta_job_args["experiment_type"] == "multiple-configs":
-        meta_to_hash = job_config.multi_config_args
-    else:
-        meta_to_hash = {}
-
-    # Hash to store results by in GCS bucket
-    # Merged dictionary of timestamp, base_config, job_config
-    config_to_hash = {**{"time": time_t}, **dict(job_config), **dict(base_config)}
-    config_to_hash["meta_config"] = meta_to_hash
-    config_to_hash = json.dumps(config_to_hash).encode("ASCII")
-
-    hash_object = hashlib.md5(config_to_hash)
+    # Hash to store results by in GCS bucket (timestamp, config_fname)
+    config_to_hash = {
+        **{"time": datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")},
+        **{"config_fname": standard["config_fname"]},
+    }
+    hash_object = hashlib.md5(json.dumps(config_to_hash).encode("ASCII"))
     experiment_hash = hash_object.hexdigest()
+
+    # Set of booleans: previously retrieved, stored in GCS, report generated
     db.dadd(new_experiment_id, ("e-hash", experiment_hash))
-
-    # Set a boolean to indicate if results were previously retrieved
     db.dadd(new_experiment_id, ("retrieved_results", False))
-
-    # Set a boolean to indicate if results were stored in GCloud Storage
-    db.dadd(new_experiment_id, ("stored_in_gcloud", False))
-
-    # Set a boolean to indicate if results were stored in GCloud Storage
+    db.dadd(new_experiment_id, ("stored_in_cloud", False))
     db.dadd(new_experiment_id, ("report_generated", False))
 
-    # Set the job status to running
+    # Set the job status to running & calculate time till completion
     db.dadd(new_experiment_id, ("job_status", "running"))
-    time_t = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
-    db.dadd(new_experiment_id, ("start_time", time_t))
-    return db, new_experiment_id, purpose
+    start_time = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    est_duration, stop_time = estimate_experiment_duration(
+        start_time, standard["time_per_job"], standard["num_job_batches"]
+    )
+    db.dadd(new_experiment_id, ("start_time", start_time))
+    db.dadd(new_experiment_id, ("duration", est_duration))
+    db.dadd(new_experiment_id, ("stop_time", stop_time))
+    return db, int(new_experiment_id)
+
+
+def estimate_experiment_duration(
+    start_time: str, time_per_batch: str, total_batches: int
+) -> Tuple[str, str]:
+    """Estimate total duration and completion time of experiment."""
+    days, hours, minutes = time_per_batch.split(":")
+    hours_add, tot_mins = divmod(total_batches * int(minutes), 60)
+    days_add, tot_hours = divmod(total_batches * int(hours) + hours_add, 24)
+    tot_days = total_batches * int(days) + days_add
+    tot_days, tot_hours, tot_mins = (str(tot_days), str(tot_hours), str(tot_mins))
+    if len(tot_days) < 2:
+        tot_days = "0" + tot_days
+    if len(tot_hours) < 2:
+        tot_hours = "0" + tot_hours
+    if len(tot_mins) < 2:
+        tot_mins = "0" + tot_mins
+
+    start_date = dt.datetime.strptime(start_time, "%m/%d/%Y %H:%M:%S")
+    end_date = start_date + dt.timedelta(
+        days=int(float(tot_days)),
+        hours=int(float(tot_hours)),
+        minutes=int(float(tot_mins)),
+    )
+    est_duration = tot_days + ":" + tot_hours + ":" + tot_mins
+    stop_time = end_date.strftime("%m/%d/%Y %H:%M:%S")
+    return est_duration, stop_time

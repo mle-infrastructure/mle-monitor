@@ -1,5 +1,6 @@
 import time
 from rich.live import Live
+from rich.console import Console
 from mle_monitor import MLEProtocol, MLEResource
 from .dashboard import layout_mle_dashboard, update_mle_dashboard
 
@@ -18,8 +19,15 @@ class MLEDashboard(object):
             "times_hour": [],
         }
 
-    def snap(self):
+    def snapshot(self):
         """Get single console output snapshot."""
+        layout = layout_mle_dashboard(self.resource)
+        resource_data = self.resource.monitor()
+        protocol_data = self.protocol.monitor()
+        layout, self.util_hist = update_mle_dashboard(
+            layout, self.util_hist, resource_data, protocol_data
+        )
+        Console().print(layout)
 
     def live(self):
         """Run constant monitoring in while loop."""

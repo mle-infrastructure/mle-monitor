@@ -28,7 +28,7 @@ def load_protocol_db(protocol_fname):
     # Sort experiment ids & get the last one
     if len(all_experiment_ids) > 0:
         all_experiment_ids.sort(key=natural_keys)
-        last_experiment_id = int(all_experiment_ids[-1].split("-")[-1])
+        last_experiment_id = int(all_experiment_ids[-1])
     else:
         last_experiment_id = 0
     return db, all_experiment_ids, last_experiment_id
@@ -46,64 +46,24 @@ def protocol_summary(db, all_experiment_ids, tail: int = 5, verbose: bool = True
         resource, num_cpus, num_gpus, total_jobs = [], [], [], []
         if tail is None:
             tail = len(all_experiment_ids)
-        for e_id in all_experiment_ids[-tail:]:
+
+        # Loop over experiment ids and extract data to retrieve
+        for int_e_id in all_experiment_ids[-tail:]:
+            e_id = str(int_e_id)
             purposes.append(db.dget(e_id, "purpose"))
             project_names.append(db.dget(e_id, "project_name"))
-            exp_paths.append(db.dget(e_id, "exp_retrieval_path"))
+            exp_paths.append(db.dget(e_id, "experiment_dir"))
             statuses.append(db.dget(e_id, "job_status"))
             start_times.append(db.dget(e_id, "start_time"))
             resource.append(db.dget(e_id, "exec_resource"))
-            try:
-                num_seeds.append(db.dget(e_id, "num_seeds"))
-            except Exception:
-                num_seeds.append("-")
-            job_args = db.dget(e_id, "single_job_args")
-            num_cpus.append(job_args["num_logical_cores"])
-            try:
-                num_gpus.append(job_args["num_gpus"])
-            except Exception:
-                num_gpus.append(0)
-
-            # Get job type data
-            meta_args = db.dget(e_id, "meta_job_args")
-            if meta_args["experiment_type"] == "hyperparameter-search":
-                experiment_types.append("search")
-            elif meta_args["experiment_type"] == "multiple-experiments":
-                experiment_types.append("multi")
-            else:
-                experiment_types.append("other")
-
-            # Get number of jobs in experiement
-            job_spec_args = db.dget(e_id, "job_spec_args")
-            if meta_args["experiment_type"] == "hyperparameter-search":
-                search_resources = job_spec_args["search_resources"]
-                try:
-                    if job_spec_args["search_config"]["search_schedule"] == "sync":
-                        total_jobs.append(
-                            search_resources["num_search_batches"]
-                            * search_resources["num_evals_per_batch"]
-                            * search_resources["num_seeds_per_eval"]
-                        )
-                    else:
-                        total_jobs.append(
-                            search_resources["num_total_evals"]
-                            * search_resources["num_seeds_per_eval"]
-                        )
-                except Exception:
-                    total_jobs.append(
-                        search_resources["num_search_batches"]
-                        * search_resources["num_evals_per_batch"]
-                        * search_resources["num_seeds_per_eval"]
-                    )
-            elif meta_args["experiment_type"] == "multiple-experiments":
-                total_jobs.append(
-                    len(job_spec_args["config_fnames"]) * job_spec_args["num_seeds"]
-                )
-            else:
-                total_jobs.append(1)
+            num_seeds.append(db.dget(e_id, "num_seeds"))
+            num_cpus.append(db.dget(e_id, "num_cpus"))
+            num_gpus.append(db.dget(e_id, "num_gpus"))
+            experiment_types.append(db.dget(e_id, "experiment_type"))
+            total_jobs.append(db.dget(e_id, "num_total_jobs"))
 
         d = {
-            "ID": all_experiment_ids[-tail:],
+            "ID": [str(e_id) for e_id in all_experiment_ids[-tail:]],
             "Date": start_times,
             "Project": project_names,
             "Purpose": purposes,
@@ -117,15 +77,12 @@ def protocol_summary(db, all_experiment_ids, tail: int = 5, verbose: bool = True
             "Jobs": total_jobs,
         }
         df = pd.DataFrame(d)
-        df["ID"] = [e.split("-")[-1] for e in df["ID"]]
         df["Date"] = df["Date"].map("{:.5}".format)
         df["Purpose"] = df["Purpose"].map("{:.30}".format)
 
         # Print a nice table overview (no job resources)
         if verbose:
-            console = Console()
-            table = Align.left(protocol_table(df, full=False))
-            console.print(table)
+            Console().print(Align.left(protocol_table(df, full=False)))
         return df
     else:
         if verbose:
@@ -133,7 +90,7 @@ def protocol_summary(db, all_experiment_ids, tail: int = 5, verbose: bool = True
         return None
 
 
-def protocol_table(df, full=True):
+def protocol_table(df, full: bool = True):
     """Generate pretty table of experiment protocol db - preselected db."""
     table = Table(show_header=True, show_footer=False, header_style="bold blue")
     sta_str = "[green]:heavy_check_mark:[/green]/[red]:heavy_multiplication_x:"
@@ -165,6 +122,11 @@ def protocol_table(df, full=True):
             else:
                 resource = "Local"
 
+            if row["Type"] == "hyperparameter-search":
+                exp_type = "search"
+            else:
+                exp_type = row["Type"]
+
             if row["Status"] == "running":
                 status = Spinner("dots", style="magenta")
             elif row["Status"] == "completed":
@@ -179,7 +141,7 @@ def protocol_table(df, full=True):
                     row["Date"],
                     row["Project"][:20],
                     row["Purpose"][:25],
-                    row["Type"],
+                    exp_type,
                     resource,
                     str(row["Jobs"]),
                     str(row["CPUs"]),
@@ -193,7 +155,7 @@ def protocol_table(df, full=True):
                     row["Date"],
                     row["Project"][:20],
                     row["Purpose"][:25],
-                    row["Type"],
+                    exp_type,
                     resource,
                 )
 

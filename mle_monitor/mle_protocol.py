@@ -15,6 +15,7 @@ class MLEProtocol(object):
     def __init__(
         self,
         protocol_fname: str,
+        extra_keys: Union[None, List[str]] = None,
         use_gcs_sync: bool = False,
         project_name: Union[str, None] = None,
         bucket_name: Union[str, None] = None,
@@ -24,6 +25,7 @@ class MLEProtocol(object):
     ):
         """MLE Protocol DB Instance."""
         self.protocol_fname = protocol_fname
+        self.extra_keys = extra_keys
         self.use_gcs_sync = use_gcs_sync
         self.project_name = project_name
         self.bucket_name = bucket_name
@@ -47,22 +49,62 @@ class MLEProtocol(object):
             self.protocol_fname
         )
 
-    def get(self, experiment_id, var_name):
+    def get(
+        self,
+        experiment_id: Union[str, int, None] = None,
+        var_name: Union[str, None] = None,
+    ):
         """Retrieve variable from database."""
-        return self.db.dget(experiment_id, var_name)
+        if experiment_id is None:
+            experiment_id = self.last_experiment_id
+        elif type(experiment_id) == int:
+            experiment_id = str(experiment_id)
+
+        if var_name is None:
+            return self.db.get(experiment_id)
+        else:
+            return self.db.dget(experiment_id, var_name)
 
     def save(self, save: bool = True):
         """Dump the protocol db to its pickle file."""
         self.db.dump()
 
-    def add(self, job_config, resource_to_run, cmd_purpose, save: bool = True):
+    @property
+    def standard_keys(self):
+        """All required keys in standard dict to supply in `add`."""
+        return [
+            "purpose",
+            "project_name",
+            "exec_resource",
+            "experiment_dir",
+            "experiment_type",
+            "config_fname",
+            "num_seeds",
+            "num_total_jobs",
+            "num_job_batches",
+            "time_per_job",
+            "num_cpus",
+            "num_gpus"
+            # "meta_job_args",
+            # "single_job_args",
+            # "job_spec_args",
+        ]
+
+    def add(self, standard: dict, extra: Union[dict, None] = None, save: bool = True):
         """Add an experiment to the database."""
-        self.db, new_experiment_id, purpose = protocol_experiment(
-            self.db, self.last_experiment_id, job_config, resource_to_run, cmd_purpose
+        for k in self.standard_keys:
+            assert k in standard.keys()
+        if extra is not None:
+            for k in self.extra_keys:
+                assert k in extra.keys()
+        self.db, new_experiment_id = protocol_experiment(
+            self.db, self.last_experiment_id, standard, extra
         )
+        self.experiment_ids.append(new_experiment_id)
+        self.last_experiment_id = new_experiment_id
         if save:
             self.save()
-        return new_experiment_id, purpose
+        return new_experiment_id
 
     def abort(self, e_id, save: bool = True):
         """Abort an experiment - change status in db."""
@@ -100,48 +142,6 @@ class MLEProtocol(object):
             return protocol_table(summary)
         return summary
 
-    def ask_user(self, delete: bool = False, abort: bool = False):
-        """Ask user if they want to delete/abort previous experiment by id."""
-        time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
-        if delete:
-            q_str = "{} Want to delete experiment? - state its id: [e_id/N]"
-        elif abort:
-            q_str = "{} Want to abort experiment? - state its id: [e_id/N]"
-        print(q_str.format(time_t), end=" ")
-        sys.stdout.flush()
-        # Loop over experiments to delete until "N" given or timeout after 60 secs
-        while True:
-            i, o, e = select.select([sys.stdin], [], [], 60)
-            if i:
-                e_id = sys.stdin.readline().strip()
-                if e_id == "N":
-                    break
-            else:
-                break
-
-            # Make sure e_id can access db via key
-            if e_id[:5] != "e-id-":
-                e_id = "e-id-" + e_id
-
-            # Delete the dictionary in DB corresponding to e-id
-            try:
-                if delete:
-                    self.delete(e_id, save=True)
-                elif abort:
-                    self.abort(e_id, save=True)
-
-                print(
-                    "{} Another one? - state the next id: [e_id/N]".format(time_t),
-                    end=" ",
-                )
-            except Exception:
-                print(
-                    "\n{} The e_id is not in the protocol db. "
-                    "Please try again: [e_id/N]".format(time_t),
-                    end=" ",
-                )
-            sys.stdout.flush()
-
     def monitor(self):
         """Get monitoring data used in dashboard."""
         total_data, last_data, time_data = get_monitor_db_data(self)
@@ -175,3 +175,56 @@ class MLEProtocol(object):
     def __len__(self) -> int:
         """Return number of experiments stored in protocol."""
         return len(self.experiment_ids)
+
+    def ask_for_e_id(self, action_str: str = "delete", return_id: bool = False):
+        """Ask user if they want to delete/abort previous experiment by id."""
+        time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
+        q_str = "{} Want to {} experiment? - state its id: [e_id/N]"
+        print(q_str.format(time_t, action_str), end=" ")
+        sys.stdout.flush()
+
+        # Loop over experiments to delete until "N" given or timeout after 60 secs
+        while True:
+            i, o, e = select.select([sys.stdin], [], [], 60)
+            if i:
+                e_id = sys.stdin.readline().strip()
+                if e_id == "N":
+                    break
+            else:
+                break
+
+            # Delete the dictionary in DB corresponding to e-id
+            try:
+                if action_str == "delete":
+                    self.delete(e_id, save=True)
+                elif action_str == "abort":
+                    self.abort(e_id, save=True)
+
+                print(
+                    "{} Another one? - state the next id: [e_id/N]".format(time_t),
+                    end=" ",
+                )
+            except Exception:
+                print(
+                    "\n{} The e_id is not in the protocol db. "
+                    "Please try again: [e_id/N]".format(time_t),
+                    end=" ",
+                )
+            sys.stdout.flush()
+
+        if return_id:
+            return e_id
+
+    def ask_for_purpose(self):
+        """Ask user for purpose of experiment."""
+        # Add purpose of experiment - cmd args or timeout input after 30 secs
+        time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
+        print(f"{time_t} Purpose of experiment?", end=" "),
+        sys.stdout.flush()
+        i, o, e = select.select([sys.stdin], [], [], 60)
+
+        if i:
+            purpose = sys.stdin.readline().strip()
+        else:
+            purpose = "default"
+        return purpose

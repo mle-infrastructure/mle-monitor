@@ -1,3 +1,4 @@
+GitPython
 pyyaml
 commentjson
 dotmap
