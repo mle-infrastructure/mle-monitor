@@ -10,9 +10,6 @@ import datetime as dt
 import numpy as np
 import plotext as plt
 
-from mle_toolbox import mle_config
-from mle_toolbox.utils import determine_resource
-
 
 class Header:
     """Display header with clock and general toolbox configurations."""
@@ -23,6 +20,11 @@ class Header:
          / /  / / /___/ /__/_____/ / / /_/ / /_/ / / /_/ / /_/ />  <
         /_/  /_/_____/_____/    /_/  \____/\____/_/_.___/\____/_/|_|
     """.splitlines()
+
+    def __init__(self, resource: str, use_gcs_sync: bool, protocol_fname: str):
+        self.resource = resource
+        self.use_gcs_sync = use_gcs_sync
+        self.protocol_fname = protocol_fname
 
     def __rich__(self) -> Panel:
         grid = Table.grid(expand=True)
@@ -36,47 +38,30 @@ class Header:
         )
         grid.add_row(
             "\u2022 GCS Sync Protocol: [green]:heavy_check_mark:"
-            if mle_config.general.use_gcloud_protocol_sync
+            if self.use_gcs_sync
             else "\u2022 GCS Sync Protocol: [red]:heavy_multiplication_x:",
             Header.welcome_ascii[1],
             "Author: @RobertTLange :bird:",
             # TODO: Figure out why link won't work if we use text != url
             # [u white link=https://twitter.com/RobertTLange]
         )
-        resource = determine_resource()
-        if resource == "sge-cluster":
-            res = "sge"
-        elif resource == "slurm-cluster":
-            res = "slurm"
-        elif resource == "gcp-cloud":
-            res = "gcp"
-        else:
-            res = "local"
-
-        if res in ["sge", "slurm", "gcp"]:
-            user_on_resource = mle_config[res].credentials.user_name
-        else:
-            # Get local user name
-            import getpass
-
-            user_on_resource = getpass.getuser()
 
         grid.add_row(
             "\u2022 GCS Sync Results: [green]:heavy_check_mark:"
-            if mle_config.general.use_gcloud_results_storage
+            if self.use_gcs_sync
             else "\u2022 GCS Sync Results: [red]:heavy_multiplication_x:",
             Header.welcome_ascii[2],
-            f"Resource: {resource}",
+            f"Resource: {self.resource}",
         )
         grid.add_row(
-            f"\u2022 DB Path: {mle_config.general.local_protocol_fname}",
+            f"\u2022 DB Path: {self.protocol_fname}",
             Header.welcome_ascii[3],
-            f"User: {user_on_resource}",
+            "Hi there! [not italic]:hugging_face:[/]",
         )
         grid.add_row(
-            f"\u2022 Env Name: {mle_config.general.remote_env_name}",
+            "",
             Header.welcome_ascii[4],
-            "Hi there! [not italic]:hugging_face:[/]",
+            "",
         )
         return Panel(grid, style="white on blue")
 
@@ -348,51 +333,51 @@ def make_last_experiment(last_data) -> Align:
     if last_data["e_type"] == "hyperparameter-search":
         table.add_row(
             Text.from_markup("[b yellow]Search"),
-            last_data["search_type"],
+            "",  # TODO: Add type of search?!
         )
         table.add_row(
             Text.from_markup("[b yellow]Metrics"),
-            str(last_data["eval_metrics"]),
+            "",  # TODO: Add str(last_data["eval_metrics"])
         )
 
-        p_counter = 0
-        for k in last_data["params_to_search"].keys():
-            for var in last_data["params_to_search"][k].keys():
-                if k == "categorical":
-                    row = [var] + last_data["params_to_search"][k][var]
-                elif k == "real":
-                    try:
-                        row = [
-                            var,
-                            last_data["params_to_search"][k][var]["begin"],
-                            last_data["params_to_search"][k][var]["end"],
-                            last_data["params_to_search"][k][var]["bins"],
-                        ]
-                    except Exception:
-                        row = [
-                            var,
-                            last_data["params_to_search"][k][var]["begin"],
-                            last_data["params_to_search"][k][var]["end"],
-                            last_data["params_to_search"][k][var]["prior"],
-                        ]
-                elif k == "integer":
-                    row = [
-                        var,
-                        last_data["params_to_search"][k][var]["begin"],
-                        last_data["params_to_search"][k][var]["end"],
-                        last_data["params_to_search"][k][var]["spacing"],
-                    ]
-                if p_counter == 0:
-                    table.add_row(
-                        Text.from_markup("[b yellow]Params"),
-                        str(row),
-                    )
-                else:
-                    table.add_row(
-                        "",
-                        str(row),
-                    )
-                p_counter += 1
+        # p_counter = 0
+        # for k in last_data["params_to_search"].keys():
+        #     for var in last_data["params_to_search"][k].keys():
+        #         if k == "categorical":
+        #             row = [var] + last_data["params_to_search"][k][var]
+        #         elif k == "real":
+        #             try:
+        #                 row = [
+        #                     var,
+        #                     last_data["params_to_search"][k][var]["begin"],
+        #                     last_data["params_to_search"][k][var]["end"],
+        #                     last_data["params_to_search"][k][var]["bins"],
+        #                 ]
+        #             except Exception:
+        #                 row = [
+        #                     var,
+        #                     last_data["params_to_search"][k][var]["begin"],
+        #                     last_data["params_to_search"][k][var]["end"],
+        #                     last_data["params_to_search"][k][var]["prior"],
+        #                 ]
+        #         elif k == "integer":
+        #             row = [
+        #                 var,
+        #                 last_data["params_to_search"][k][var]["begin"],
+        #                 last_data["params_to_search"][k][var]["end"],
+        #                 last_data["params_to_search"][k][var]["spacing"],
+        #             ]
+        #         if p_counter == 0:
+        #             table.add_row(
+        #                 Text.from_markup("[b yellow]Params"),
+        #                 str(row),
+        #             )
+        #         else:
+        #             table.add_row(
+        #                 "",
+        #                 str(row),
+        #             )
+        #         p_counter += 1
     return Align.center(table)
 
 

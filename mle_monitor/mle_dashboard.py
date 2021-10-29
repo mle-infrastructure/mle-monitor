@@ -21,7 +21,9 @@ class MLEDashboard(object):
 
     def snapshot(self):
         """Get single console output snapshot."""
-        layout = layout_mle_dashboard(self.resource)
+        layout = layout_mle_dashboard(
+            self.resource, self.protocol.use_gcs_sync, self.protocol.protocol_fname
+        )
         resource_data = self.resource.monitor()
         protocol_data = self.protocol.monitor()
         layout, self.util_hist = update_mle_dashboard(

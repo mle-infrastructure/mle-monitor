@@ -2,6 +2,7 @@ from typing import Union, List
 from datetime import datetime
 import sys
 import select
+from rich.console import Console
 from .protocol import (
     load_protocol_db,
     protocol_summary,
@@ -15,29 +16,33 @@ class MLEProtocol(object):
     def __init__(
         self,
         protocol_fname: str,
-        extra_keys: Union[None, List[str]] = None,
         use_gcs_sync: bool = False,
-        project_name: Union[str, None] = None,
-        bucket_name: Union[str, None] = None,
+        gcs_project_name: Union[str, None] = None,
+        gcs_bucket_name: Union[str, None] = None,
         gcs_protocol_fname: Union[str, None] = None,
-        local_protocol_fname: Union[str, None] = None,
         gcs_credentials_path: Union[str, None] = None,
+        extra_keys: Union[None, List[str]] = None,
+        verbose: bool = False,
     ):
         """MLE Protocol DB Instance."""
         self.protocol_fname = protocol_fname
         self.extra_keys = extra_keys
+        self.verbose = verbose
+
         self.use_gcs_sync = use_gcs_sync
-        self.project_name = project_name
-        self.bucket_name = bucket_name
+        self.gcs_project_name = gcs_project_name
+        self.gcs_bucket_name = gcs_bucket_name
         self.gcs_protocol_fname = gcs_protocol_fname
-        self.local_protocol_fname = local_protocol_fname
         self.gcs_credentials_path = gcs_credentials_path
 
         if self.use_gcs_sync:
+            assert self.gcs_project_name is not None
+            assert self.gcs_bucket_name is not None
             from .protocol.gcs_sync import set_gcp_credentials
 
             # Set the path to the GCP credentials json file & pull recent db
-            set_gcp_credentials(self.gcs_credentials_path)
+            if self.gcs_credentials_path is not None:
+                set_gcp_credentials(self.gcs_credentials_path)
         self.load()
 
     def load(self, pull_gcs: bool = True):
@@ -65,9 +70,11 @@ class MLEProtocol(object):
         else:
             return self.db.dget(experiment_id, var_name)
 
-    def save(self, save: bool = True):
+    def save(self):
         """Dump the protocol db to its pickle file."""
         self.db.dump()
+        if self.verbose:
+            Console().log(f"Locally stored protocol: {self.protocol_fname}")
 
     @property
     def standard_keys(self):
@@ -101,6 +108,8 @@ class MLEProtocol(object):
         )
         self.experiment_ids.append(new_experiment_id)
         self.last_experiment_id = new_experiment_id
+        if self.verbose:
+            Console().log(f"Added experiment {new_experiment_id} to protocol.")
         if save:
             self.save()
         return new_experiment_id
@@ -161,14 +170,18 @@ class MLEProtocol(object):
 
     def gcs_send(self):
         """Send the local protocol to a GCS bucket."""
+        # First store the most recent log
+        self.save()
         from .protocol.gcs_sync import send_gcloud_db
 
         send_db = send_gcloud_db(
-            self.project_name,
-            self.bucket_name,
+            self.gcs_project_name,
+            self.gcs_bucket_name,
             self.gcs_protocol_fname,
-            self.local_protocol_fname,
+            self.protocol_fname,
         )
+        if self.verbose:
+            Console().log(f"Send protocol to GCS bucket: {self.gcs_bucket_name}.")
         return send_db
 
     def gcs_pull(self):
@@ -176,11 +189,13 @@ class MLEProtocol(object):
         from .protocol.gcs_sync import get_gcloud_db
 
         accessed_db = get_gcloud_db(
-            self.project_name,
-            self.bucket_name,
+            self.gcs_project_name,
+            self.gcs_bucket_name,
             self.gcs_protocol_fname,
-            self.local_protocol_fname,
+            self.protocol_fname,
         )
+        if self.verbose:
+            Console().log(f"Pulled protocol from GCS bucket: {self.gcs_bucket_name}.")
         return accessed_db
 
     def __len__(self) -> int:

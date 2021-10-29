@@ -31,7 +31,9 @@ TODOs:
 """
 
 
-def layout_mle_dashboard(resource) -> Layout:
+def layout_mle_dashboard(
+    resource: str, use_gcs_sync: bool, protocol_fname: str
+) -> Layout:
     """Define the MLE-Toolbox `monitor` base dashboard layout."""
     layout = Layout(name="root")
     # Split in three vertical sections: Welcome, core info, help + util plots
@@ -76,7 +78,7 @@ def layout_mle_dashboard(resource) -> Layout:
     )
 
     # Fill the header with life!
-    layout["header"].update(Header())
+    layout["header"].update(Header(resource, use_gcs_sync, protocol_fname))
     return layout
 
 
