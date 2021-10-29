@@ -34,7 +34,9 @@ def load_protocol_db(protocol_fname):
     return db, all_experiment_ids, last_experiment_id
 
 
-def protocol_summary(db, all_experiment_ids, tail: int = 5, verbose: bool = True):
+def protocol_summary(
+    db, all_experiment_ids, tail: int = 5, verbose: bool = True, full: bool = False
+):
     """Construct a summary dataframe of previous experiments."""
     # Set pandas df format option to print
     pd.set_option("display.max_columns", 5)
@@ -82,7 +84,7 @@ def protocol_summary(db, all_experiment_ids, tail: int = 5, verbose: bool = True
 
         # Print a nice table overview (no job resources)
         if verbose:
-            Console().print(Align.left(protocol_table(df, full=False)))
+            Console().print(Align.left(protocol_table(df, full)))
         return df
     else:
         if verbose:

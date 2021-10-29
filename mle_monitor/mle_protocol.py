@@ -56,7 +56,7 @@ class MLEProtocol(object):
     ):
         """Retrieve variable from database."""
         if experiment_id is None:
-            experiment_id = self.last_experiment_id
+            experiment_id = str(self.last_experiment_id)
         elif type(experiment_id) == int:
             experiment_id = str(experiment_id)
 
@@ -78,16 +78,15 @@ class MLEProtocol(object):
             "exec_resource",
             "experiment_dir",
             "experiment_type",
+            "base_fname",
             "config_fname",
             "num_seeds",
             "num_total_jobs",
             "num_job_batches",
+            "num_jobs_per_batch",
             "time_per_job",
             "num_cpus",
-            "num_gpus"
-            # "meta_job_args",
-            # "single_job_args",
-            # "job_spec_args",
+            "num_gpus",
         ]
 
     def add(self, standard: dict, extra: Union[dict, None] = None, save: bool = True):
@@ -106,17 +105,21 @@ class MLEProtocol(object):
             self.save()
         return new_experiment_id
 
-    def abort(self, e_id, save: bool = True):
+    def abort(self, experiment_id: Union[int, str], save: bool = True):
         """Abort an experiment - change status in db."""
-        self.db.dadd(e_id, ("job_status", "aborted"))
+        self.db.dadd(str(experiment_id), ("job_status", "aborted"))
         if save:
             self.save()
 
-    def delete(self, e_id, save: bool = True):
+    def delete(self, experiment_id: Union[int, str], save: bool = True):
         """Delete an experiment - change status in db."""
-        self.db.drem(e_id)
+        self.db.drem(str(experiment_id))
         if save:
             self.save()
+
+    def status(self, experiment_id: Union[int, str]) -> str:
+        """Get the status of an experiment."""
+        return self.db.dget(str(experiment_id), "job_status")
 
     def update(
         self,
@@ -129,17 +132,25 @@ class MLEProtocol(object):
         # Update the variable(s) of the experiment
         if type(var_name) == list:
             for db_v_id in range(len(var_name)):
-                self.db.dadd(experiment_id, (var_name[db_v_id], var_value[db_v_id]))
+                self.db.dadd(
+                    str(experiment_id), (var_name[db_v_id], var_value[db_v_id])
+                )
         else:
-            self.db.dadd(experiment_id, (var_name, var_value))
+            self.db.dadd(str(experiment_id), (var_name, var_value))
         if save:
             self.save()
 
-    def summary(self, tail: int = 5, verbose: bool = True, return_table: bool = False):
+    def summary(
+        self,
+        tail: int = 5,
+        verbose: bool = True,
+        return_table: bool = False,
+        full: bool = False,
+    ):
         """Print a rich summary table of all experiments in db."""
-        summary = protocol_summary(self.db, self.experiment_ids, tail, verbose)
+        summary = protocol_summary(self.db, self.experiment_ids, tail, verbose, full)
         if return_table:
-            return protocol_table(summary)
+            return protocol_table(summary, full)
         return summary
 
     def monitor(self):
@@ -176,10 +187,10 @@ class MLEProtocol(object):
         """Return number of experiments stored in protocol."""
         return len(self.experiment_ids)
 
-    def ask_for_e_id(self, action_str: str = "delete", return_id: bool = False):
+    def ask_for_e_id(self, action_str: str = "delete"):
         """Ask user if they want to delete/abort previous experiment by id."""
         time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
-        q_str = "{} Want to {} experiment? - state its id: [e_id/N]"
+        q_str = "{} Want to {} an experiment? - state its id: [e_id/N]"
         print(q_str.format(time_t, action_str), end=" ")
         sys.stdout.flush()
 
@@ -189,31 +200,33 @@ class MLEProtocol(object):
             if i:
                 e_id = sys.stdin.readline().strip()
                 if e_id == "N":
-                    break
+                    return e_id
             else:
                 break
 
-            # Delete the dictionary in DB corresponding to e-id
-            try:
-                if action_str == "delete":
-                    self.delete(e_id, save=True)
-                elif action_str == "abort":
-                    self.abort(e_id, save=True)
-
-                print(
-                    "{} Another one? - state the next id: [e_id/N]".format(time_t),
-                    end=" ",
-                )
-            except Exception:
+            if e_id not in self.experiment_ids:
+                time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
                 print(
                     "\n{} The e_id is not in the protocol db. "
                     "Please try again: [e_id/N]".format(time_t),
                     end=" ",
                 )
-            sys.stdout.flush()
+                sys.stdout.flush()
+                continue
 
-        if return_id:
-            return e_id
+            # Delete the dictionary in DB corresponding to e-id
+            if action_str == "delete":
+                self.delete(e_id, save=True)
+            elif action_str == "abort":
+                self.abort(e_id, save=True)
+            else:
+                return e_id
+
+            print(
+                "{} Another one? - state the next id: [e_id/N]".format(time_t),
+                end=" ",
+            )
+            sys.stdout.flush()
 
     def ask_for_purpose(self):
         """Ask user for purpose of experiment."""

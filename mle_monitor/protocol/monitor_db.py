@@ -1,5 +1,4 @@
 import os
-import datetime as dt
 
 
 def get_monitor_db_data(db):
@@ -84,116 +83,29 @@ def get_total_experiments(db, all_experiment_ids):
 
 def get_time_experiment(db, last_experiment_id):
     """Get data from db to show in 'time_experiment' panel."""
-    meta_args = db.get(last_experiment_id, "meta_job_args")
-    job_spec_args = db.get(last_experiment_id, "job_spec_args")
-    single_job_args = db.get(last_experiment_id, "single_job_args")
-
-    if meta_args["experiment_type"] == "hyperparameter-search":
-        search_resources = job_spec_args["search_resources"]
-        if job_spec_args["search_config"]["search_schedule"] == "sync":
-            total_jobs = (
-                search_resources["num_search_batches"]
-                * search_resources["num_evals_per_batch"]
-                * search_resources["num_seeds_per_eval"]
-            )
-            total_batches = search_resources["num_search_batches"]
-            jobs_per_batch = (
-                search_resources["num_evals_per_batch"]
-                * search_resources["num_seeds_per_eval"]
-            )
-        else:
-            total_jobs = (
-                search_resources["num_total_evals"]
-                * search_resources["num_seeds_per_eval"]
-            )
-            total_batches = total_jobs / search_resources["max_running_jobs"]
-            jobs_per_batch = search_resources["max_running_jobs"]
-    elif meta_args["experiment_type"] == "multiple-experiments":
-        total_jobs = len(job_spec_args["config_fnames"]) * job_spec_args["num_seeds"]
-        total_batches = 1
-        jobs_per_batch = "-"
-    else:
-        total_jobs = 1
-        total_batches = 1
-        jobs_per_batch = "-"
-
-    start_time = db.get(last_experiment_id, "start_time")
-
-    if "time_per_job" in single_job_args.keys():
-        time_per_batch = single_job_args["time_per_job"]
-        days, hours, minutes = time_per_batch.split(":")
-        hours_add, tot_mins = divmod(total_batches * int(minutes), 60)
-        days_add, tot_hours = divmod(total_batches * int(hours) + hours_add, 24)
-        tot_days = total_batches * int(days) + days_add
-        tot_days, tot_hours, tot_mins = (str(tot_days), str(tot_hours), str(tot_mins))
-        if len(tot_days) < 2:
-            tot_days = "0" + tot_days
-        if len(tot_hours) < 2:
-            tot_hours = "0" + tot_hours
-        if len(tot_mins) < 2:
-            tot_mins = "0" + tot_mins
-        est_duration = tot_days + ":" + tot_hours + ":" + tot_mins
-
-        # Check if last experiment has already terminated!
-        try:
-            stop_time = db.get(last_experiment_id, "stop_time")
-        except Exception:
-            start_date = dt.datetime.strptime(start_time, "%m/%d/%Y %H:%M:%S")
-            end_date = start_date + dt.timedelta(
-                days=int(float(tot_days)),
-                hours=int(float(tot_hours)),
-                minutes=int(float(tot_mins)),
-            )
-            stop_time = end_date.strftime("%m/%d/%Y %H:%M:%S")
-    else:
-        start_time = "-"
-        stop_time = "-"
-        time_per_batch = "-"
-        est_duration = "-"
-
     results = {
-        "total_jobs": total_jobs,
-        "total_batches": total_batches,
-        "jobs_per_batch": jobs_per_batch,
-        "time_per_batch": time_per_batch,
-        "start_time": start_time,
-        "stop_time": stop_time,
-        "est_duration": est_duration,
+        "total_jobs": db.get(last_experiment_id, "num_total_jobs"),
+        "total_batches": db.get(last_experiment_id, "num_job_batches"),
+        "jobs_per_batch": db.get(last_experiment_id, "num_jobs_per_batch"),
+        "time_per_batch": db.get(last_experiment_id, "time_per_job"),
+        "start_time": db.get(last_experiment_id, "start_time"),
+        "stop_time": db.get(last_experiment_id, "stop_time"),
+        "est_duration": db.get(last_experiment_id, "duration"),
     }
     return results
 
 
 def get_last_experiment(db, last_experiment_id):
     """Get data from db to show in 'last_experiments' panel."""
-    # Return results dictionary
-    meta_args = db.get(last_experiment_id, "meta_job_args")
-    job_spec_args = db.get(last_experiment_id, "job_spec_args")
-    e_type = meta_args["experiment_type"]
-    e_dir = meta_args["experiment_dir"]
-    e_script = meta_args["base_train_fname"]
-    e_config = os.path.split(meta_args["base_train_config"])[1]
-    try:
-        e_report = meta_args["report_generation"]
-    except Exception:
-        e_report = False
     results = {
         "e_id": str(last_experiment_id),
-        "e_dir": e_dir,
-        "e_type": e_type,
-        "e_script": e_script,
-        "e_config": e_config,
-        "report_gen": e_report,
+        "e_dir": db.get(last_experiment_id, "experiment_dir"),
+        "e_type": db.get(last_experiment_id, "experiment_type"),
+        "e_script": db.get(last_experiment_id, "base_fname"),
+        "e_config": db.get(last_experiment_id, "config_fname"),
+        "report_gen": db.get(last_experiment_id, "report_generated"),
     }
 
-    # Add additional data based on the experiment type
-    if e_type == "hyperparameter-search":
-        results["search_type"] = job_spec_args["search_config"]["search_type"]
-        try:
-            results["eval_metrics"] = job_spec_args["search_logging"]["eval_metrics"]
-        except Exception:
-            # No eval metric provided (case of no .hdf5 logging) - leave blank
-            results["eval_metrics"] = "-"
-        results["params_to_search"] = job_spec_args["search_config"]["search_params"]
-    elif e_type == "multiple-experiments":
-        results["config_fnames"] = job_spec_args["config_fnames"]
+    # results["eval_metrics"] = job_spec_args["search_logging"]["eval_metrics"]
+    # results["config_fnames"] = job_spec_args["config_fnames"]
     return results

@@ -7,3 +7,4 @@ pandas
 rich==9.13.0
 psutil
 gputil
+pickledb
