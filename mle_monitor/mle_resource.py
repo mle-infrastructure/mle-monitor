@@ -1,14 +1,8 @@
-from .resource.detect import determine_resource
-from typing import Union
-
-
 class MLEResource(object):
-    def __init__(self, resource_name: Union[str, None] = None):
+    def __init__(self, resource_name: str = "local"):
         """MLE Resource Instance - Get Monitoring Data."""
-        if resource_name is None:
-            self.resource_name = determine_resource()
-        else:
-            self.resource_name = resource_name
+        assert resource_name in ["local", "sge-cluster", "slurm-cluster", "gcp-cloud"]
+        self.resource_name = resource_name
 
     def monitor(self):
         """Get utilization data."""

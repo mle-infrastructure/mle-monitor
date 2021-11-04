@@ -13,7 +13,7 @@ from rich.align import Align
 def load_protocol_db(protocol_fname):
     """Load local database from config name & reconstruct experiment id."""
     # Attempt loading local protocol database - otherwise return clean one
-    db = pickledb.load(protocol_fname, False)
+    db = pickledb.load(protocol_fname, False, sig=False)
     # Get the most recent experiment id
     all_experiment_ids = list(db.getall())
 
