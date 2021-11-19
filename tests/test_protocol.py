@@ -60,7 +60,7 @@ def test_update_delete_abort_protocol():
 def test_monitor_protocol():
     # Check that all required keys are in collected data
     protocol = MLEProtocol(protocol_fname="mle_protocol.db")
-    e_id = protocol.add(meta_data, save=False)
+    _ = protocol.add(meta_data, save=False)
     # Get the monitoring data - used later in dashboard
     total_data, last_data, time_data, protocol_table = protocol.monitor()
     total_keys = [

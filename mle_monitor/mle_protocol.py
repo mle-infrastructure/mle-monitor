@@ -16,33 +16,33 @@ class MLEProtocol(object):
     def __init__(
         self,
         protocol_fname: str,
-        use_gcs_sync: bool = False,
-        gcs_project_name: Union[str, None] = None,
-        gcs_bucket_name: Union[str, None] = None,
-        gcs_protocol_fname: Union[str, None] = None,
-        gcs_credentials_path: Union[str, None] = None,
-        extra_keys: Union[None, List[str]] = None,
+        cloud_settings: Union[dict, None] = None,
         verbose: bool = False,
     ):
         """MLE Protocol DB Instance."""
         self.protocol_fname = protocol_fname
-        self.extra_keys = extra_keys
+        self.cloud_settings = cloud_settings
         self.verbose = verbose
 
-        self.use_gcs_sync = use_gcs_sync
-        self.gcs_project_name = gcs_project_name
-        self.gcs_bucket_name = gcs_bucket_name
-        self.gcs_protocol_fname = gcs_protocol_fname
-        self.gcs_credentials_path = gcs_credentials_path
+        if self.cloud_settings is not None:
+            # Don't use sync if cloud_setting dict is empty DotMap
+            if len(self.cloud_settings.keys()) > 0:
+                assert self.cloud_settings["project_name"] is not None
+                assert self.cloud_settings["bucket_name"] is not None
+                self.use_gcs_sync = self.cloud_settings["use_protocol_sync"]
 
-        if self.use_gcs_sync:
-            assert self.gcs_project_name is not None
-            assert self.gcs_bucket_name is not None
-            from .protocol.gcs_sync import set_gcp_credentials
+                if "credentials_path" in self.cloud_settings:
+                    # Set the path to the GCP credentials json file & pull recent db
+                    from .protocol.gcs_sync import set_gcp_credentials
 
-            # Set the path to the GCP credentials json file & pull recent db
-            if self.gcs_credentials_path is not None:
-                set_gcp_credentials(self.gcs_credentials_path)
+                    set_gcp_credentials(cloud_settings["credentials_path"])
+
+                if "protocol_fname" not in self.cloud_settings:
+                    self.cloud_settings["protcol_fname"] = self.protocol_fname
+            else:
+                self.use_gcs_sync = False
+        else:
+            self.use_gcs_sync = False
         self.load()
 
     def load(self, pull_gcs: bool = True):
@@ -50,6 +50,10 @@ class MLEProtocol(object):
         if self.use_gcs_sync:
             if pull_gcs:
                 self.accessed_gcs = self.gcs_pull()
+            else:
+                self.accessed_gcs = False
+        else:
+            self.accessed_gcs = False
         self.db, self.experiment_ids, self.last_experiment_id = load_protocol_db(
             self.protocol_fname
         )
@@ -100,9 +104,6 @@ class MLEProtocol(object):
         """Add an experiment to the database."""
         for k in self.standard_keys:
             assert k in standard.keys()
-        if extra is not None:
-            for k in self.extra_keys:
-                assert k in extra.keys()
         self.db, new_experiment_id = protocol_experiment(
             self.db, self.last_experiment_id, standard, extra
         )
@@ -175,13 +176,15 @@ class MLEProtocol(object):
         from .protocol.gcs_sync import send_gcloud_db
 
         send_db = send_gcloud_db(
-            self.gcs_project_name,
-            self.gcs_bucket_name,
-            self.gcs_protocol_fname,
+            self.cloud_settings["project_name"],
+            self.cloud_settings["bucket_name"],
+            self.cloud_settings["protocol_fname"],
             self.protocol_fname,
         )
         if self.verbose:
-            Console().log(f"Send protocol to GCS bucket: {self.gcs_bucket_name}.")
+            Console().log(
+                f"Send protocol to GCS bucket: {self.cloud_settings['bucket_name']}."
+            )
         return send_db
 
     def gcs_pull(self):
@@ -189,13 +192,15 @@ class MLEProtocol(object):
         from .protocol.gcs_sync import get_gcloud_db
 
         accessed_db = get_gcloud_db(
-            self.gcs_project_name,
-            self.gcs_bucket_name,
-            self.gcs_protocol_fname,
+            self.cloud_settings["project_name"],
+            self.cloud_settings["bucket_name"],
+            self.cloud_settings["protocol_fname"],
             self.protocol_fname,
         )
         if self.verbose:
-            Console().log(f"Pulled protocol from GCS bucket: {self.gcs_bucket_name}.")
+            Console().log(
+                f"Pulled protocol from GCS bucket: {self.cloud_settings['bucket_name']}."
+            )
         return accessed_db
 
     def __len__(self) -> int:

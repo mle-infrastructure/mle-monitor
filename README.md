@@ -3,15 +3,16 @@
 [![PyPI version](https://badge.fury.io/py/mle-monitor.svg)](https://badge.fury.io/py/mle-monitor)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mle-infrastructure/mle-monitor/blob/main/examples/getting_started.ipynb)
+[![codecov](https://codecov.io/gh/mle-infrastructure/mle-monitor/branch/main/graph/badge.svg?75FIYZG8BD)](https://codecov.io/gh/mle-infrastructure/mle-monitor)
 <a href="https://github.com/mle-infrastructure/mle-monitor/blob/main/docs/logo_transparent.png?raw=true"><img src="https://github.com/mle-infrastructure/mle-monitor/blob/main/docs/logo_transparent.png?raw=true" width="200" align="right" /></a>
 
 `mle-monitor` provides three core functionalities:
 
 - **`MLEProtocol`**: A composable protocol database API for ML experiments.
-- **`MLEResource`**: A tool for obtaining cluster usage statistics (Slurm & GridEngine).
+- **`MLEResource`**: A tool for obtaining server/cluster usage statistics.
 - **`MLEDashboard`**: A dashboard visualizing both resource usage and experiment protocol.
 
-<img src="https://github.com/mle-infrastructure/mle-hyperopt/blob/main/docs/mle_hyperopt_structure.png?raw=true" alt="drawing" width="900"/>
+<img src="https://github.com/mle-infrastructure/mle-monitor/blob/main/docs/mle_monitor_structure.png?raw=true" alt="drawing" width="900"/>
 
 ## The `MLEProtocol` API 🎮
 
@@ -59,6 +60,22 @@ dashboard.snapshot()
 
 # Run monitoring in while loop - dashboard
 dashboard.live()
+```
+
+## Installation ⏳
+
+A PyPI installation is available via:
+
+```
+pip install mle-monitor
+```
+
+Alternatively, you can clone this repository and afterwards 'manually' install it:
+
+```
+git clone https://github.com/mle-infrastructure/mle-monitor.git
+cd mle-monitor
+pip install -e .
 ```
 
 ## Development & Milestones for Next Release
