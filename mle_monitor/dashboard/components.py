@@ -51,7 +51,7 @@ class Header:
             if self.use_gcs_sync
             else "\u2022 GCS Sync Results: [red]:heavy_multiplication_x:",
             Header.welcome_ascii[2],
-            f"Resource: {self.resource}",
+            f"Resource: {self.resource.resource_name}",
         )
         grid.add_row(
             f"\u2022 DB Path: {self.protocol_fname}",

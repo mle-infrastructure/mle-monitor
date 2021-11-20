@@ -124,6 +124,8 @@ class MLEProtocol(object):
     def delete(self, experiment_id: Union[int, str], save: bool = True):
         """Delete an experiment - change status in db."""
         self.db.drem(str(experiment_id))
+        self.all_experiment_ids = list(self.db.getall())
+        self.last_experiment_id = int(self.all_experiment_ids[-1])
         if save:
             self.save()
 
@@ -166,7 +168,9 @@ class MLEProtocol(object):
     def monitor(self):
         """Get monitoring data used in dashboard."""
         total_data, last_data, time_data = get_monitor_db_data(self)
-        protocol_table = self.summary(tail=29, verbose=False, return_table=True)
+        protocol_table = self.summary(
+            tail=29, verbose=False, return_table=True, full=True
+        )
         return total_data, last_data, time_data, protocol_table
 
     def gcs_send(self):

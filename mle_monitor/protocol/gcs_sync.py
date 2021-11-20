@@ -41,6 +41,7 @@ def get_gcloud_db(
             logger.info(f"Pulled from GCloud Storage - " f"{gcs_protocol_fname}")
             return 1
         except Exception as ex:
+            print(ex)
             # Remove empty file - causes error otherwise when trying to load
             os.remove(expanduser(local_protocol_fname))
             if type(ex).__name__ == "NotFound":

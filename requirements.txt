@@ -10,3 +10,4 @@ psutil
 gputil
 pickledb
 plotext
+Pillow

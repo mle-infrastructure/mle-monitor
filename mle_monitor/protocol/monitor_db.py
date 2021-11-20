@@ -1,6 +1,3 @@
-import os
-
-
 def get_monitor_db_data(db):
     """Helper to get all data from pickledb database."""
     if len(db.experiment_ids) > 0:
@@ -105,7 +102,4 @@ def get_last_experiment(db, last_experiment_id):
         "e_config": db.get(last_experiment_id, "config_fname"),
         "report_gen": db.get(last_experiment_id, "report_generated"),
     }
-
-    # results["eval_metrics"] = job_spec_args["search_logging"]["eval_metrics"]
-    # results["config_fnames"] = job_spec_args["config_fnames"]
     return results

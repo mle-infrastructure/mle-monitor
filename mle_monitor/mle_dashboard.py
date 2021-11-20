@@ -34,7 +34,9 @@ class MLEDashboard(object):
     def live(self):
         """Run constant monitoring in while loop."""
         # Generate the dashboard layout and display first data
-        layout = layout_mle_dashboard(self.resource)
+        layout = layout_mle_dashboard(
+            self.resource, self.protocol.use_gcs_sync, self.protocol.protocol_fname
+        )
         resource_data = self.resource.monitor()
         protocol_data = self.protocol.monitor()
         layout, self.util_hist = update_mle_dashboard(
