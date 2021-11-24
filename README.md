@@ -10,7 +10,7 @@
 
 - **`MLEProtocol`**: A composable protocol database API for ML experiments.
 - **`MLEResource`**: A tool for obtaining server/cluster usage statistics.
-- **`MLEDashboard`**: A dashboard visualizing both resource usage and experiment protocol.
+- **`MLEDashboard`**: A dashboard visualizing resource usage & experiment protocol.
 
 <img src="https://github.com/mle-infrastructure/mle-monitor/blob/main/docs/mle_monitor_structure.png?raw=true" alt="drawing" width="900"/>
 

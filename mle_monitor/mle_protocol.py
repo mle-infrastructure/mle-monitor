@@ -23,13 +23,16 @@ class MLEProtocol(object):
         self.protocol_fname = protocol_fname
         self.cloud_settings = cloud_settings
         self.verbose = verbose
-
+        # Setup GCS credentials/data
         if self.cloud_settings is not None:
             # Don't use sync if cloud_setting dict is empty DotMap
             if len(self.cloud_settings.keys()) > 0:
                 assert self.cloud_settings["project_name"] is not None
                 assert self.cloud_settings["bucket_name"] is not None
-                self.use_gcs_sync = self.cloud_settings["use_protocol_sync"]
+                self.use_gcs_protocol_sync = self.cloud_settings["use_protocol_sync"]
+                self.use_gcs_protocol_storage = self.cloud_settings[
+                    "use_results_storage"
+                ]
 
                 if "credentials_path" in self.cloud_settings:
                     # Set the path to the GCP credentials json file & pull recent db
@@ -38,16 +41,18 @@ class MLEProtocol(object):
                     set_gcp_credentials(cloud_settings["credentials_path"])
 
                 if "protocol_fname" not in self.cloud_settings:
-                    self.cloud_settings["protcol_fname"] = self.protocol_fname
+                    self.cloud_settings["protocol_fname"] = self.protocol_fname
             else:
-                self.use_gcs_sync = False
+                self.use_gcs_protocol_sync = False
+                self.use_gcs_protocol_storage = False
         else:
-            self.use_gcs_sync = False
+            self.use_gcs_protocol_sync = False
+            self.use_gcs_protocol_storage = False
         self.load()
 
     def load(self, pull_gcs: bool = True):
         """Load the protocol data from a local pickle file."""
-        if self.use_gcs_sync:
+        if self.use_gcs_protocol_sync:
             if pull_gcs:
                 self.accessed_gcs = self.gcs_pull()
             else:
@@ -64,6 +69,7 @@ class MLEProtocol(object):
         var_name: Union[str, None] = None,
     ):
         """Retrieve variable from database."""
+        self.load()
         if experiment_id is None:
             experiment_id = str(self.last_experiment_id)
         elif type(experiment_id) == int:
@@ -79,6 +85,13 @@ class MLEProtocol(object):
         self.db.dump()
         if self.verbose:
             Console().log(f"Locally stored protocol: {self.protocol_fname}")
+
+        # Send recent/up-to-date experiment DB to Google Cloud Storage
+        if self.use_gcs_protocol_sync:
+            if self.accessed_gcs:
+                self.gcs_send()
+                if self.verbose:
+                    Console().log(f"GCS synced protocol: {self.protocol_fname}")
 
     @property
     def standard_keys(self):
@@ -102,6 +115,7 @@ class MLEProtocol(object):
 
     def add(self, standard: dict, extra: Union[dict, None] = None, save: bool = True):
         """Add an experiment to the database."""
+        self.load()
         for k in self.standard_keys:
             assert k in standard.keys()
         self.db, new_experiment_id = protocol_experiment(
@@ -129,13 +143,44 @@ class MLEProtocol(object):
         if save:
             self.save()
 
+    def complete(
+        self, experiment_id: Union[int, str], report: bool = False, save: bool = True
+    ):
+        """Set status of an experiment to completed - change status in db."""
+        self.load()
+        # Store experiment directory in GCS bucket under hash
+        if self.use_gcs_protocol_storage:
+            from .protocol.gcs_zip import send_gcloud_zip
+
+            zip_to_store = self.get(experiment_id, "e-hash") + ".zip"
+            experiment_dir = self.get(experiment_id, "experiment_dir")
+            send_gcloud_zip(self.cloud_settings, experiment_dir, zip_to_store, True)
+            if self.verbose:
+                Console().log(f"Send results to GCS: {zip_to_store}")
+
+        # Update and send protocol db
+        time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
+        self.update(
+            experiment_id,
+            var_name=[
+                "job_status",
+                "stop_time",
+                "report_generated",
+                "stored_in_gcloud",
+            ],
+            var_value=["completed", time_t, report, self.use_gcs_protocol_storage],
+            save=save,
+        )
+        if self.verbose:
+            Console().log(f"Updated protocol - COMPLETED: {experiment_id}")
+
     def status(self, experiment_id: Union[int, str]) -> str:
         """Get the status of an experiment."""
         return self.db.dget(str(experiment_id), "job_status")
 
     def update(
         self,
-        experiment_id: str,
+        experiment_id: Union[int, str],
         var_name: Union[List[str], str],
         var_value: Union[list, str, dict],
         save: bool = True,
@@ -173,10 +218,33 @@ class MLEProtocol(object):
         )
         return total_data, last_data, time_data, protocol_table
 
+    def retrieve(self, experiment_id: Union[int, str]):
+        """Retrieve experiment from GCS."""
+        from .protocol.gcs_zip import get_gcloud_zip
+
+        while True:
+            if experiment_id not in self.experiment_ids:
+                time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
+                print(
+                    time_t, "The experiment you are trying to retrieve does not exist"
+                )
+                experiment_id = input(
+                    time_t + " Which experiment do you want to retrieve?"
+                )
+            else:
+                break
+
+        # Update protocol retrieval status of the experiment
+        hash_to_store = self.get(experiment_id, "e-hash")
+        get_gcloud_zip(self.cloud_settings, hash_to_store, experiment_id)
+        self.update(experiment_id, "retrieved_results", True)
+
+        if self.verbose:
+            Console().log(f"Retrieved results from GCS bucket: {experiment_id}.")
+
     def gcs_send(self):
         """Send the local protocol to a GCS bucket."""
         # First store the most recent log
-        self.save()
         from .protocol.gcs_sync import send_gcloud_db
 
         send_db = send_gcloud_db(
@@ -211,11 +279,11 @@ class MLEProtocol(object):
         """Return number of experiments stored in protocol."""
         return len(self.experiment_ids)
 
-    def ask_for_e_id(self, action_str: str = "delete"):
+    def ask_for_e_id(self, action: str = "delete"):
         """Ask user if they want to delete/abort previous experiment by id."""
         time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
         q_str = "{} Want to {} an experiment? - state its id: [e_id/N]"
-        print(q_str.format(time_t, action_str), end=" ")
+        print(q_str.format(time_t, action), end=" ")
         sys.stdout.flush()
 
         # Loop over experiments to delete until "N" given or timeout after 60 secs
@@ -239,9 +307,9 @@ class MLEProtocol(object):
                 continue
 
             # Delete the dictionary in DB corresponding to e-id
-            if action_str == "delete":
+            if action == "delete":
                 self.delete(e_id, save=True)
-            elif action_str == "abort":
+            elif action == "abort":
                 self.abort(e_id, save=True)
             else:
                 return e_id

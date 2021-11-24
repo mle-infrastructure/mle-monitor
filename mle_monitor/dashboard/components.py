@@ -14,12 +14,12 @@ import plotext as plt
 class Header:
     """Display header with clock and general toolbox configurations."""
 
-    welcome_ascii = """            __  _____    ______   ______            ____
-           /  |/  / /   / ____/  /_  __/___  ____  / / /_  ____  _  __
-          / /|_/ / /   / __/______/ / / __ \/ __ \/ / __ \/ __ \| |/_/
-         / /  / / /___/ /__/_____/ / / /_/ / /_/ / / /_/ / /_/ />  <
-        /_/  /_/_____/_____/    /_/  \____/\____/_/_.___/\____/_/|_|
-    """.splitlines()
+    welcome_ascii = """              __                                 _ __
+   ____ ___  / /__        ____ ___  ____  ____  (_) /_____  _____
+  / __ `__ \/ / _ \______/ __ `__ \/ __ \/ __ \/ / __/ __ \/ ___/
+ / / / / / / /  __/_____/ / / / / / /_/ / / / / / /_/ /_/ / /
+/_/ /_/ /_/_/\___/     /_/ /_/ /_/\____/_/ /_/_/\__/\____/_/
+""".splitlines()
 
     def __init__(self, resource: str, use_gcs_sync: bool, protocol_fname: str):
         self.resource = resource
