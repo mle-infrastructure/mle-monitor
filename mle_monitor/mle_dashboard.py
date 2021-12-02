@@ -1,7 +1,8 @@
 import time
 from rich.live import Live
 from rich.console import Console
-from mle_monitor import MLEProtocol, MLEResource
+from . import MLEProtocol, MLEResource
+from .mle_tracker import MLETracker
 from .dashboard import layout_mle_dashboard, update_mle_dashboard
 
 
@@ -10,51 +11,53 @@ class MLEDashboard(object):
         """MLE Resource Dashboard - Rich-based terminal output."""
         self.protocol = protocol
         self.resource = resource
-
-        # Start storing utilisation history
-        self.util_hist = {
-            "rel_mem_util": [],
-            "rel_cpu_util": [],
-            "times_date": [],
-            "times_hour": [],
-        }
+        self.tracker = MLETracker()
 
     def snapshot(self):
         """Get single console output snapshot."""
+        # Create the layout
         layout = layout_mle_dashboard(
-            self.resource, self.protocol.use_gcs_sync, self.protocol.protocol_fname
+            self.resource,
+            self.protocol.use_gcs_protocol_sync,
+            self.protocol.protocol_fname,
         )
+        # Retrieve the data
         resource_data = self.resource.monitor()
         protocol_data = self.protocol.monitor()
-        layout, self.util_hist = update_mle_dashboard(
-            layout, self.util_hist, resource_data, protocol_data
-        )
+        usage_data = self.tracker.update(resource_data[2])
+        # Update the layout and print it
+        layout = update_mle_dashboard(layout, resource_data, protocol_data, usage_data)
         Console().print(layout)
 
     def live(self):
         """Run constant monitoring in while loop."""
         # Generate the dashboard layout and display first data
         layout = layout_mle_dashboard(
-            self.resource, self.protocol.use_gcs_sync, self.protocol.protocol_fname
+            self.resource,
+            self.protocol.use_gcs_protocol_sync,
+            self.protocol.protocol_fname,
         )
+
         resource_data = self.resource.monitor()
         protocol_data = self.protocol.monitor()
-        layout, self.util_hist = update_mle_dashboard(
-            layout, self.util_hist, resource_data, protocol_data
-        )
+        usage_data = self.tracker.update(resource_data[2])
+        layout = update_mle_dashboard(layout, resource_data, protocol_data, usage_data)
 
         # Start timers for GCS pulling and reloading of local protocol db
         timer_gcs = time.time()
         timer_db = time.time()
 
         # Run the live updating of the dashboard
-        with Live(layout, refresh_per_second=10, screen=True):
+        with Live(console=Console(), screen=True, auto_refresh=True) as live:
             while True:
+                live.update(layout)
+
                 try:
                     resource_data = self.resource.monitor()
                     protocol_data = self.protocol.monitor()
-                    layout, self.util_hist = update_mle_dashboard(
-                        layout, self.util_hist, resource_data, protocol_data
+                    usage_data = self.tracker.update(resource_data[2])
+                    layout = update_mle_dashboard(
+                        layout, resource_data, protocol_data, usage_data
                     )
 
                     # Every 10 seconds reload local database file
@@ -66,16 +69,6 @@ class MLEDashboard(object):
                     if time.time() - timer_gcs > 600:
                         self.protocol.load()
                         timer_gcs = time.time()
-
-                    # Truncate/Limit memory to approx. last 27 hours
-                    self.util_hist["times_date"] = self.util_hist["times_date"][:100000]
-                    self.util_hist["times_hour"] = self.util_hist["times_hour"][:100000]
-                    self.util_hist["rel_mem_util"] = self.util_hist["rel_mem_util"][
-                        :100000
-                    ]
-                    self.util_hist["rel_cpu_util"] = self.util_hist["rel_cpu_util"][
-                        :100000
-                    ]
 
                     # Wait a second
                     time.sleep(1)

@@ -69,7 +69,6 @@ class MLEProtocol(object):
         var_name: Union[str, None] = None,
     ):
         """Retrieve variable from database."""
-        self.load()
         if experiment_id is None:
             experiment_id = str(self.last_experiment_id)
         elif type(experiment_id) == int:
@@ -115,7 +114,6 @@ class MLEProtocol(object):
 
     def add(self, standard: dict, extra: Union[dict, None] = None, save: bool = True):
         """Add an experiment to the database."""
-        self.load()
         for k in self.standard_keys:
             assert k in standard.keys()
         self.db, new_experiment_id = protocol_experiment(
@@ -214,11 +212,15 @@ class MLEProtocol(object):
         """Get monitoring data used in dashboard."""
         total_data, last_data, time_data = get_monitor_db_data(self)
         protocol_table = self.summary(
-            tail=29, verbose=False, return_table=True, full=True
+            tail=50, verbose=False, return_table=True, full=True
         )
         return total_data, last_data, time_data, protocol_table
 
-    def retrieve(self, experiment_id: Union[int, str]):
+    def retrieve(
+        self,
+        experiment_id: Union[int, str],
+        local_dir_name: Union[None, str] = None,
+    ):
         """Retrieve experiment from GCS."""
         from .protocol.gcs_zip import get_gcloud_zip
 
@@ -236,7 +238,9 @@ class MLEProtocol(object):
 
         # Update protocol retrieval status of the experiment
         hash_to_store = self.get(experiment_id, "e-hash")
-        get_gcloud_zip(self.cloud_settings, hash_to_store, experiment_id)
+        get_gcloud_zip(
+            self.cloud_settings, hash_to_store, experiment_id, local_dir_name
+        )
         self.update(experiment_id, "retrieved_results", True)
 
         if self.verbose:

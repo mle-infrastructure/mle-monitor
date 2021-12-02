@@ -5,7 +5,7 @@ commentjson
 dotmap
 numpy
 pandas
-rich==9.13.0
+rich
 psutil
 gputil
 pickledb

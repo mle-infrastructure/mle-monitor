@@ -14,11 +14,11 @@ import plotext as plt
 class Header:
     """Display header with clock and general toolbox configurations."""
 
-    welcome_ascii = """              __                                 _ __
-   ____ ___  / /__        ____ ___  ____  ____  (_) /_____  _____
-  / __ `__ \/ / _ \______/ __ `__ \/ __ \/ __ \/ / __/ __ \/ ___/
- / / / / / / /  __/_____/ / / / / / /_/ / / / / / /_/ /_/ / /
-/_/ /_/ /_/_/\___/     /_/ /_/ /_/\____/_/ /_/_/\__/\____/_/
+    welcome_ascii = """                        __                                 _ __
+             ____ ___  / /__        ____ ___  ____  ____  (_) /_____  _____
+            / __ `__ \/ / _ \______/ __ `__ \/ __ \/ __ \/ / __/ __ \/ ___/
+           / / / / / / /  __/_____/ / / / / / /_/ / / / / / /_/ /_/ / /
+          /_/ /_/ /_/_/\___/     /_/ /_/ /_/\____/_/ /_/_/\__/\____/_/
 """.splitlines()
 
     def __init__(self, resource: str, use_gcs_sync: bool, protocol_fname: str):
@@ -42,7 +42,6 @@ class Header:
             else "\u2022 GCS Sync Protocol: [red]:heavy_multiplication_x:",
             Header.welcome_ascii[1],
             "Author: @RobertTLange :bird:",
-            # TODO: Figure out why link won't work if we use text != url
             # [u white link=https://twitter.com/RobertTLange]
         )
 
@@ -329,55 +328,6 @@ def make_last_experiment(last_data) -> Align:
         Text.from_markup("[b yellow]Config"),
         last_data["e_config"],
     )
-
-    if last_data["e_type"] == "hyperparameter-search":
-        table.add_row(
-            Text.from_markup("[b yellow]Search"),
-            "",  # TODO: Add type of search?!
-        )
-        table.add_row(
-            Text.from_markup("[b yellow]Metrics"),
-            "",  # TODO: Add str(last_data["eval_metrics"])
-        )
-
-        # p_counter = 0
-        # for k in last_data["params_to_search"].keys():
-        #     for var in last_data["params_to_search"][k].keys():
-        #         if k == "categorical":
-        #             row = [var] + last_data["params_to_search"][k][var]
-        #         elif k == "real":
-        #             try:
-        #                 row = [
-        #                     var,
-        #                     last_data["params_to_search"][k][var]["begin"],
-        #                     last_data["params_to_search"][k][var]["end"],
-        #                     last_data["params_to_search"][k][var]["bins"],
-        #                 ]
-        #             except Exception:
-        #                 row = [
-        #                     var,
-        #                     last_data["params_to_search"][k][var]["begin"],
-        #                     last_data["params_to_search"][k][var]["end"],
-        #                     last_data["params_to_search"][k][var]["prior"],
-        #                 ]
-        #         elif k == "integer":
-        #             row = [
-        #                 var,
-        #                 last_data["params_to_search"][k][var]["begin"],
-        #                 last_data["params_to_search"][k][var]["end"],
-        #                 last_data["params_to_search"][k][var]["spacing"],
-        #             ]
-        #         if p_counter == 0:
-        #             table.add_row(
-        #                 Text.from_markup("[b yellow]Params"),
-        #                 str(row),
-        #             )
-        #         else:
-        #             table.add_row(
-        #                 "",
-        #                 str(row),
-        #             )
-        #         p_counter += 1
     return Align.center(table)
 
 
@@ -392,6 +342,7 @@ def make_est_completion(time_data) -> Align:
     )
     table.add_column()
     table.add_column()
+    table.add_row(Text.from_markup("[b yellow]Status"), str(time_data["job_status"]))
     table.add_row(
         Text.from_markup("[b yellow]Total Jobs"), str(time_data["total_jobs"])
     )
@@ -408,10 +359,10 @@ def make_est_completion(time_data) -> Align:
         Text.from_markup("[b yellow]Start Time"), str(time_data["start_time"])
     )
     table.add_row(
-        Text.from_markup("[b yellow]Est. Stop Time"), str(time_data["stop_time"])
+        Text.from_markup("[b yellow]~ Stop Time"), str(time_data["stop_time"])
     )
     table.add_row(
-        Text.from_markup("[b yellow]Est. Duration"), str(time_data["est_duration"])
+        Text.from_markup("[b yellow]~ Duration"), str(time_data["est_duration"])
     )
     return Align.center(table)
 
@@ -483,7 +434,7 @@ def make_cpu_util_plot(cpu_hist) -> Align:
     # Clear the plot and draw the utilisation lines
     plt.clear_plot()
     plt.plot(x, y, line_marker=0, line_color="tomato", label="% CPU Util.")
-    plt.figsize(42, 8)
+    plt.figsize(40, 10)
     plt.canvas_color("black")
     plt.axes_color("black")
     plt.ticks_color("white")
@@ -516,7 +467,7 @@ def make_memory_util_plot(mem_hist) -> Align:
     # Clear the plot and draw the utilisation lines
     plt.clear_plot()
     plt.plot(x, y, line_marker=0, line_color="tomato", label="% Memory Util.")
-    plt.figsize(42, 8)
+    plt.figsize(40, 10)
     plt.canvas_color("black")
     plt.axes_color("black")
     plt.ticks_color("white")

@@ -81,6 +81,7 @@ def get_total_experiments(db, all_experiment_ids):
 def get_time_experiment(db, last_experiment_id):
     """Get data from db to show in 'time_experiment' panel."""
     results = {
+        "job_status": db.get(last_experiment_id, "job_status"),
         "total_jobs": db.get(last_experiment_id, "num_total_jobs"),
         "total_batches": db.get(last_experiment_id, "num_job_batches"),
         "jobs_per_batch": db.get(last_experiment_id, "num_jobs_per_batch"),
