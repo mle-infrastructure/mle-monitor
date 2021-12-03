@@ -1,8 +1,5 @@
-from rich.layout import Layout
 from rich.panel import Panel
-
 from .components import (
-    Header,
     make_user_jobs_cluster,
     make_node_jobs_cluster,
     make_device_panel_local,
@@ -11,60 +8,11 @@ from .components import (
     make_total_experiments,
     make_last_experiment,
     make_est_completion,
-    make_help_commands,
-    make_gcp_util,
     make_cpu_util_plot,
     make_memory_util_plot,
+    make_protocol_total_plot,
+    make_protocol_daily_plot,
 )
-
-
-"""
-TODOs:
-- Make cluster resource calls more efficient/robust -> Faster at startup
-- Add data collection functions for local + gcp!
-    - monitor_gcp.py
-- Replace help subcommand overview with GCS Bucket info => Only if used!
-    - Jobs running
-    - Bucket GB storage info
-    - Last time all experiments where synced
-- Link Author @RobertTLange to twitter account
-"""
-
-
-def layout_mle_dashboard(
-    resource: str, use_gcs_sync: bool, protocol_fname: str
-) -> Layout:
-    """Define the MLE-Toolbox `monitor` base dashboard layout."""
-    layout = Layout(name="root")
-    # Split in three vertical sections: Welcome, core info, help + util plots
-    layout.split_column(
-        Layout(name="header", size=7),
-        Layout(name="main", ratio=3),
-        Layout(name="footer", ratio=1),
-    )
-    # Split center into 3 horizontal sections
-    layout["main"].split_row(
-        Layout(name="left", ratio=1),
-        Layout(name="center", ratio=3),
-        Layout(name="right", ratio=1),
-    )
-
-    # Split center right into total experiments, last experiments, ETA
-    layout["right"].split_column(
-        Layout(name="r-box1", ratio=3),
-        Layout(name="r-box2", ratio=3),
-        Layout(name="r-box3", ratio=4),
-    )
-    # Split bottom into toolbox command info and cluster util termplots
-    layout["footer"].split_row(
-        Layout(name="f-box1", ratio=1),
-        Layout(name="f-box2", ratio=1),
-        Layout(name="f-box3", ratio=1),
-        Layout(name="f-box4", ratio=1),
-    )
-    # # Fill the header with life!
-    layout["header"].update(Header(resource, use_gcs_sync, protocol_fname))
-    return layout
 
 
 def update_mle_dashboard(layout, resource_data, protocol_data, usage_data):
@@ -162,14 +110,14 @@ def update_mle_dashboard(layout, resource_data, protocol_data, usage_data):
 
     layout["f-box3"].update(
         Panel(
-            make_cpu_util_plot(usage_data),
+            make_protocol_total_plot(usage_data),
             title=("Protocol Timeline: Total Experiments"),
             border_style="yellow",
         ),
     )
     layout["f-box4"].update(
         Panel(
-            make_memory_util_plot(usage_data),
+            make_protocol_daily_plot(usage_data),
             title=("Protocol Timeline: Experiments/Day"),
             border_style="yellow",
         )
