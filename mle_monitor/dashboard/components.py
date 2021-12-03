@@ -5,7 +5,11 @@ from rich.table import Table
 from rich.text import Text
 from rich.spinner import Spinner
 from rich.ansi import AnsiDecoder
-
+from rich.progress import (
+    BarColumn,
+    Progress,
+    TextColumn,
+)
 import datetime as dt
 import numpy as np
 import plotext as plt
@@ -328,6 +332,37 @@ def make_last_experiment(last_data) -> Align:
         Text.from_markup("[b yellow]Config"),
         last_data["e_config"],
     )
+
+    if last_data["job_status"] == "running":
+        table.add_row(
+            Text.from_markup("[b yellow]Status"),
+            "Running :running:",
+        )
+    elif last_data["job_status"] == "completed":
+        table.add_row(
+            Text.from_markup("[b yellow]Status"),
+            "Completed [green]:heavy_check_mark:",
+        )
+    elif last_data["job_status"] == "aborted":
+        table.add_row(
+            Text.from_markup("[b yellow]Status"),
+            "Aborted [red]:heavy_multiplication_x:",
+        )
+
+    progress = Progress(
+        TextColumn("{task.completed}/{task.total}", justify="left", style="magenta"),
+        BarColumn(bar_width=10, style="magenta"),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        auto_refresh=False,
+    )
+
+    task = progress.add_task("queue", total=10)
+    progress.update(task, completed=2, refresh=True)
+
+    table.add_row(
+        Text.from_markup("[b yellow]#Jobs [green]:heavy_check_mark:"),
+        progress,
+    )
     return Align.center(table)
 
 
@@ -342,7 +377,10 @@ def make_est_completion(time_data) -> Align:
     )
     table.add_column()
     table.add_column()
-    table.add_row(Text.from_markup("[b yellow]Status"), str(time_data["job_status"]))
+    table.add_row(
+        Text.from_markup("[b yellow]Configs/Seeds"),
+        f"{int(time_data['total_jobs']/time_data['num_seeds'])}/{time_data['num_seeds']}",
+    )
     table.add_row(
         Text.from_markup("[b yellow]Total Jobs"), str(time_data["total_jobs"])
     )
@@ -428,13 +466,13 @@ def make_gcp_util(gcp_data) -> Align:
 
 def make_cpu_util_plot(cpu_hist) -> Align:
     """Plot curve displaying a CPU usage times series for the cluster."""
-    x = np.arange(len(cpu_hist["rel_cpu_util"]))
-    y = np.array(cpu_hist["rel_cpu_util"])
+    x = np.arange(len(cpu_hist["rel_cpu_util"])).tolist()
+    y = np.array(cpu_hist["rel_cpu_util"]).tolist()
 
     # Clear the plot and draw the utilisation lines
     plt.clear_plot()
-    plt.plot(x, y, line_marker=0, line_color="tomato", label="% CPU Util.")
-    plt.figsize(40, 10)
+    plt.plot(x, y, marker="dot", color="red", label="% CPU Util.")
+    plt.figure.plot_size(40, 9)
     plt.canvas_color("black")
     plt.axes_color("black")
     plt.ticks_color("white")
@@ -445,7 +483,6 @@ def make_cpu_util_plot(cpu_hist) -> Align:
     xlabels = [
         cpu_hist["times_date"][i][:5] + "-" + cpu_hist["times_hour"][i] for i in xticks
     ]
-    plt.ticks(0, 3)
     plt.xticks(xticks, xlabels)
     plot_str = plotext_helper()
     decoder = AnsiDecoder()
@@ -461,13 +498,13 @@ def make_cpu_util_plot(cpu_hist) -> Align:
 
 def make_memory_util_plot(mem_hist) -> Align:
     """Plot curve displaying a memory usage times series for the cluster."""
-    x = np.arange(len(mem_hist["rel_mem_util"]))
-    y = np.array(mem_hist["rel_mem_util"])
+    x = np.arange(len(mem_hist["rel_mem_util"])).tolist()
+    y = np.array(mem_hist["rel_mem_util"]).tolist()
 
     # Clear the plot and draw the utilisation lines
     plt.clear_plot()
-    plt.plot(x, y, line_marker=0, line_color="tomato", label="% Memory Util.")
-    plt.figsize(40, 10)
+    plt.plot(x, y, marker="dot", color="red", label="% Memory Util.")
+    plt.figure.plot_size(40, 9)
     plt.canvas_color("black")
     plt.axes_color("black")
     plt.ticks_color("white")
@@ -478,7 +515,6 @@ def make_memory_util_plot(mem_hist) -> Align:
     xlabels = [
         mem_hist["times_date"][i][:5] + "-" + mem_hist["times_hour"][i] for i in xticks
     ]
-    plt.ticks(0, 3)
     plt.xticks(xticks, xlabels)
     plot_str = plotext_helper()
     decoder = AnsiDecoder()
@@ -494,47 +530,5 @@ def make_memory_util_plot(mem_hist) -> Align:
 
 def plotext_helper():
     """Helper fct. that generates ansi string  to plot."""
-    from plotext.plot import (
-        _size_max,
-        _height_min,
-        _height,
-        _ylim_data,
-        _ylim_plot,
-        _yticks,
-        _width_min,
-        _width,
-        _xlim_data,
-        _xlim_plot,
-        _xticks,
-        _matrix,
-        _grid,
-        _add_data,
-        _legend,
-        _yaxis,
-        _xaxis,
-        _title,
-        _axes_label,
-        _canvas,
-    )
-
-    _size_max()
-    _height_min()
-    _height()
-    _ylim_data()
-    _ylim_plot()
-    _yticks()
-    _width_min()
-    _width()
-    _xlim_data()
-    _xlim_plot()
-    _xticks()
-    _matrix()
-    _grid()
-    _add_data()
-    _legend()
-    _yaxis()
-    _xaxis()
-    _title()
-    _axes_label()
-    _canvas()
-    return plt.par.canvas
+    plt.figure.build()
+    return plt.figure.canvas

@@ -27,6 +27,7 @@ def get_monitor_db_data(db):
             "report_gen": "-",
         }
         time_data = {
+            "job_status": "-",
             "total_jobs": "-",
             "total_batches": "-",
             "jobs_per_batch": "-",
@@ -80,27 +81,30 @@ def get_total_experiments(db, all_experiment_ids):
 
 def get_time_experiment(db, last_experiment_id):
     """Get data from db to show in 'time_experiment' panel."""
+    last_experiment = db.get(last_experiment_id)
     results = {
-        "job_status": db.get(last_experiment_id, "job_status"),
-        "total_jobs": db.get(last_experiment_id, "num_total_jobs"),
-        "total_batches": db.get(last_experiment_id, "num_job_batches"),
-        "jobs_per_batch": db.get(last_experiment_id, "num_jobs_per_batch"),
-        "time_per_batch": db.get(last_experiment_id, "time_per_job"),
-        "start_time": db.get(last_experiment_id, "start_time"),
-        "stop_time": db.get(last_experiment_id, "stop_time"),
-        "est_duration": db.get(last_experiment_id, "duration"),
+        "num_seeds": last_experiment["num_seeds"],
+        "total_jobs": last_experiment["num_total_jobs"],
+        "total_batches": last_experiment["num_job_batches"],
+        "jobs_per_batch": last_experiment["num_jobs_per_batch"],
+        "time_per_batch": last_experiment["time_per_job"],
+        "start_time": last_experiment["start_time"],
+        "stop_time": last_experiment["stop_time"],
+        "est_duration": last_experiment["duration"],
     }
     return results
 
 
 def get_last_experiment(db, last_experiment_id):
     """Get data from db to show in 'last_experiments' panel."""
+    last_experiment = db.get(last_experiment_id)
     results = {
         "e_id": str(last_experiment_id),
-        "e_dir": db.get(last_experiment_id, "experiment_dir"),
-        "e_type": db.get(last_experiment_id, "experiment_type"),
-        "e_script": db.get(last_experiment_id, "base_fname"),
-        "e_config": db.get(last_experiment_id, "config_fname"),
-        "report_gen": db.get(last_experiment_id, "report_generated"),
+        "job_status": last_experiment["job_status"],
+        "e_dir": last_experiment["experiment_dir"],
+        "e_type": last_experiment["experiment_type"],
+        "e_script": last_experiment["base_fname"],
+        "e_config": last_experiment["config_fname"],
+        "report_gen": last_experiment["report_generated"],
     }
     return results

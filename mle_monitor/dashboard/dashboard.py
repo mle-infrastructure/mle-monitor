@@ -51,9 +51,9 @@ def layout_mle_dashboard(
 
     # Split center right into total experiments, last experiments, ETA
     layout["right"].split_column(
-        Layout(name="r-box1", ratio=2),
-        Layout(name="r-box2", ratio=2),
-        Layout(name="r-box3", ratio=3),
+        Layout(name="r-box1", ratio=3),
+        Layout(name="r-box2", ratio=3),
+        Layout(name="r-box3", ratio=4),
     )
     # Split bottom into toolbox command info and cluster util termplots
     layout["footer"].split_row(
@@ -160,11 +160,18 @@ def update_mle_dashboard(layout, resource_data, protocol_data, usage_data):
         )
     )
 
+    layout["f-box3"].update(
+        Panel(
+            make_cpu_util_plot(usage_data),
+            title=("Protocol Timeline: Total Experiments"),
+            border_style="yellow",
+        ),
+    )
     layout["f-box4"].update(
         Panel(
-            make_help_commands(),
-            border_style="white",
-            title="[b white]Core MLE-Toolbox CLI",
+            make_memory_util_plot(usage_data),
+            title=("Protocol Timeline: Experiments/Day"),
+            border_style="yellow",
         )
     )
     return layout

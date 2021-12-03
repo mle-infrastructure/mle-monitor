@@ -49,28 +49,21 @@ class MLEDashboard(object):
 
         # Run the live updating of the dashboard
         with Live(console=Console(), screen=True, auto_refresh=True) as live:
+            live.update(layout)
             while True:
-                live.update(layout)
+                resource_data = self.resource.monitor()
+                protocol_data = self.protocol.monitor()
+                usage_data = self.tracker.update(resource_data[2])
+                layout = update_mle_dashboard(
+                    layout, resource_data, protocol_data, usage_data
+                )
 
-                try:
-                    resource_data = self.resource.monitor()
-                    protocol_data = self.protocol.monitor()
-                    usage_data = self.tracker.update(resource_data[2])
-                    layout = update_mle_dashboard(
-                        layout, resource_data, protocol_data, usage_data
-                    )
+                # Every 10 seconds reload local database file
+                if time.time() - timer_db > 10:
+                    self.protocol.load(pull_gcs=False)
+                    timer_db = time.time()
 
-                    # Every 10 seconds reload local database file
-                    if time.time() - timer_db > 10:
-                        self.protocol.load(pull_gcs=False)
-                        timer_db = time.time()
-
-                    # Every 10 minutes pull the newest DB from GCS
-                    if time.time() - timer_gcs > 600:
-                        self.protocol.load()
-                        timer_gcs = time.time()
-
-                    # Wait a second
-                    time.sleep(1)
-                except Exception:
-                    pass
+                # Every 10 minutes pull the newest DB from GCS
+                if time.time() - timer_gcs > 600:
+                    self.protocol.load()
+                    timer_gcs = time.time()
