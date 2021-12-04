@@ -69,7 +69,7 @@ def make_memory_util_plot(mem_hist) -> Align:
     return Align.center(message)
 
 
-def make_protocol_total_plot(mem_hist) -> Align:
+def make_protocol_total_plot(exp_total_hist) -> Align:
     """Plot curve displaying a memory usage times series for the cluster."""
     x = np.arange(len(mem_hist["rel_mem_util"])).tolist()
     y = np.array(mem_hist["rel_mem_util"]).tolist()
@@ -101,7 +101,7 @@ def make_protocol_total_plot(mem_hist) -> Align:
     return Align.center(message)
 
 
-def make_protocol_daily_plot(mem_hist) -> Align:
+def make_protocol_daily_plot(exp_daily_hist) -> Align:
     """Plot curve displaying a memory usage times series for the cluster."""
     pizzas = ["Sausage", "Pepperoni", "Mushrooms", "Cheese", "Chicken", "Beef"]
     male_percentages = [14, 36, 11, 8, 7, 4]

@@ -88,7 +88,7 @@ def test_monitor_protocol():
         "time_per_batch",
         "start_time",
         "stop_time",
-        "est_duration",
+        "duration",
     ]
     for k in time_keys:
         assert k in time_data.keys()

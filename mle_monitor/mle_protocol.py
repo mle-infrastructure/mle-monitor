@@ -79,14 +79,14 @@ class MLEProtocol(object):
         else:
             return self.db.dget(experiment_id, var_name)
 
-    def save(self):
+    def save(self, send_gcs: bool = True):
         """Dump the protocol db to its pickle file."""
         self.db.dump()
         if self.verbose:
             Console().log(f"Locally stored protocol: {self.protocol_fname}")
 
         # Send recent/up-to-date experiment DB to Google Cloud Storage
-        if self.use_gcs_protocol_sync:
+        if send_gcs and self.use_gcs_protocol_sync:
             if self.accessed_gcs:
                 self.gcs_send()
                 if self.verbose:
@@ -112,7 +112,13 @@ class MLEProtocol(object):
             "num_gpus",
         ]
 
-    def add(self, standard: dict, extra: Union[dict, None] = None, save: bool = True):
+    def add(
+        self,
+        standard: dict,
+        extra: Union[dict, None] = None,
+        save: bool = True,
+        send_gcs: bool = True,
+    ):
         """Add an experiment to the database."""
         for k in self.standard_keys:
             assert k in standard.keys()
@@ -125,16 +131,20 @@ class MLEProtocol(object):
         if self.verbose:
             Console().log(f"Added experiment {new_experiment_id} to protocol.")
         if save:
-            self.save()
+            self.save(send_gcs)
         return new_experiment_id
 
-    def abort(self, experiment_id: Union[int, str], save: bool = True):
+    def abort(
+        self, experiment_id: Union[int, str], save: bool = True, send_gcs: bool = True
+    ):
         """Abort an experiment - change status in db."""
         self.db.dadd(str(experiment_id), ("job_status", "aborted"))
         if save:
-            self.save()
+            self.save(send_gcs)
 
-    def delete(self, experiment_id: Union[int, str], save: bool = True):
+    def delete(
+        self, experiment_id: Union[int, str], save: bool = True, send_gcs: bool = True
+    ):
         """Delete an experiment - change status in db."""
         self.db.drem(str(experiment_id))
         self.all_experiment_ids = list(self.db.getall())
@@ -143,22 +153,27 @@ class MLEProtocol(object):
         else:
             self.last_experiment_id = 0
         if save:
-            self.save()
+            self.save(send_gcs)
 
     def update_progress_bar(
         self,
-        experiment_id: Union[int, str],
-        completed_increment: int = 0,
+        experiment_id: Union[int, str, None] = None,
+        completed_increment: int = 1,
+        pull_gcs: bool = False,
         save: bool = True,
+        send_gcs: bool = False,
     ):
         """Update progress bar of completed jobs using an integer increment."""
-        self.load()
+        if experiment_id is None:
+            experiment_id = self.added_experiment_id
+        self.load(pull_gcs)
         experiment_data = self.get(experiment_id)
         self.update(
             experiment_id,
             "completed_jobs",
             experiment_data["completed_jobs"] + completed_increment,
             save=save,
+            send_gcs=send_gcs,
         )
 
     def complete(
@@ -179,9 +194,9 @@ class MLEProtocol(object):
 
         # Update and send protocol db
         time_t = datetime.now().strftime("%m/%d/%y %I:%M %p")
-        stop_time = datetime.strptime(time_t, "%m/%d/%y %H:%M %p")
+        stop_time = datetime.strptime(time_t, "%m/%d/%y %I:%M %p")
         start_time = datetime.strptime(
-            experiment_data["start_time"], "%m/%d/%y %H:%M %p"
+            experiment_data["start_time"], "%m/%d/%y %I:%M %p"
         )
         duration = str(stop_time - start_time)
         self.update(
@@ -217,6 +232,7 @@ class MLEProtocol(object):
         var_name: Union[List[str], str],
         var_value: Union[list, str, dict],
         save: bool = True,
+        send_gcs: bool = True,
     ):
         """Update the data of an experiment."""
         # Update the variable(s) of the experiment
@@ -228,7 +244,7 @@ class MLEProtocol(object):
         else:
             self.db.dadd(str(experiment_id), (var_name, var_value))
         if save:
-            self.save()
+            self.save(send_gcs)
 
     def summary(
         self,

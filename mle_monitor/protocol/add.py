@@ -71,7 +71,7 @@ def protocol_experiment(
     # Set the job status to running & calculate time till completion
     db.dadd(new_experiment_id, ("job_status", "running"))
     db.dadd(new_experiment_id, ("completed_jobs", 0))
-    start_time = datetime.now().strftime("%m/%d/%y %H:%M %p")
+    start_time = datetime.now().strftime("%m/%d/%y %I:%M %p")
     est_duration, stop_time = estimate_experiment_duration(
         start_time, standard["time_per_job"], standard["num_job_batches"]
     )
@@ -97,12 +97,12 @@ def estimate_experiment_duration(
     if len(tot_mins) < 2:
         tot_mins = "0" + tot_mins
 
-    start_date = dt.datetime.strptime(start_time, "%m/%d/%y %H:%M %p")
+    start_date = dt.datetime.strptime(start_time, "%m/%d/%y %I:%M %p")
     end_date = start_date + dt.timedelta(
         days=int(float(tot_days)),
         hours=int(float(tot_hours)),
         minutes=int(float(tot_mins)),
     )
     est_duration = tot_days + ":" + tot_hours + ":" + tot_mins
-    stop_time = end_date.strftime("%m/%d/%y %H:%M %p")
+    stop_time = end_date.strftime("%m/%d/%y %I:%M %p")
     return est_duration, stop_time

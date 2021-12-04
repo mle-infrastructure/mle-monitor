@@ -150,14 +150,16 @@ def make_est_completion(time_data) -> Align:
             Text.from_markup("[b yellow]Stop Time"), str(time_data["stop_time"])
         )
         table.add_row(
-            Text.from_markup("[b yellow]Duration"), str(time_data["duration"])
+            Text.from_markup("[b yellow]Duration"),
+            str(time_data["duration"]) + " [d:hh:mm]",
         )
     else:
         table.add_row(
             Text.from_markup("[b yellow]~ Stop Time"), str(time_data["stop_time"])
         )
         table.add_row(
-            Text.from_markup("[b yellow]~ Duration"), str(time_data["duration"])
+            Text.from_markup("[b yellow]~ Duration"),
+            str(time_data["duration"]) + " [d:hh:mm]",
         )
     progress = Progress(
         TextColumn("{task.completed}/{task.total}", justify="left", style="magenta"),
@@ -170,7 +172,7 @@ def make_est_completion(time_data) -> Align:
     progress.update(task, completed=time_data["completed_jobs"], refresh=True)
     table.add_row(
         "[b yellow]-----------",
-        "[b yellow]----------------",
+        "[b yellow]-----------------",
     )
     table.add_row(
         Text.from_markup(

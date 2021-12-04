@@ -68,7 +68,7 @@ class Header:
             if self.use_gcs_sync
             else "\u2022 GCS Sync Protocol: [red]:heavy_multiplication_x:",
             Header.welcome_ascii[1],
-            "[u link=https://twitter.com/RobertTLange]Author: @RobertTLange :bird:",
+            "Author: [u link=https://twitter.com/RobertTLange]@RobertTLange[/] :bird:",
         )
 
         grid.add_row(
@@ -76,7 +76,7 @@ class Header:
             if self.use_gcs_sync
             else "\u2022 GCS Sync Results: [red]:heavy_multiplication_x:",
             Header.welcome_ascii[2],
-            ":point_right: [u link=https://github.com/mle-infrastructure]MLE-Infrastructure :small_red_triangle:",
+            ":point_right: [u link=https://github.com/mle-infrastructure]MLE-Infrastructure[/] :small_red_triangle:",
         )
         grid.add_row(
             f"\u2022 DB Path: {self.protocol_fname}",

@@ -57,13 +57,15 @@ class MLEDashboard(object):
                 layout = update_dashboard(
                     layout, resource_data, protocol_data, usage_data
                 )
+                try:
+                    # Every 10 seconds reload local database file
+                    if time.time() - timer_db > 10:
+                        self.protocol.load(pull_gcs=False)
+                        timer_db = time.time()
 
-                # Every 10 seconds reload local database file
-                if time.time() - timer_db > 10:
-                    self.protocol.load(pull_gcs=False)
-                    timer_db = time.time()
-
-                # Every 10 minutes pull the newest DB from GCS
-                if time.time() - timer_gcs > 600:
-                    self.protocol.load()
-                    timer_gcs = time.time()
+                    # Every 10 minutes pull the newest DB from GCS
+                    if time.time() - timer_gcs > 600:
+                        self.protocol.load()
+                        timer_gcs = time.time()
+                except Exception:
+                    pass
