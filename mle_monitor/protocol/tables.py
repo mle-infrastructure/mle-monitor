@@ -6,6 +6,11 @@ from rich.table import Table
 from rich.spinner import Spinner
 from rich.console import Console
 from rich.align import Align
+from rich.progress import (
+    BarColumn,
+    Progress,
+    TextColumn,
+)
 
 
 def protocol_summary(
@@ -15,11 +20,10 @@ def protocol_summary(
     # Set pandas df format option to print
     pd.set_option("display.max_columns", 5)
     pd.set_option("max_colwidth", 30)
-    time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
     if len(all_experiment_ids) > 0:
         purposes, project_names, exp_paths = [], [], []
         num_seeds, statuses, start_times, experiment_types = [], [], [], []
-        resource, num_cpus, num_gpus, total_jobs = [], [], [], []
+        resource, num_cpus, num_gpus, total_jobs, completed_jobs = [], [], [], [], []
         if tail is None:
             tail = len(all_experiment_ids)
 
@@ -37,6 +41,7 @@ def protocol_summary(
             num_gpus.append(db.dget(e_id, "num_gpus"))
             experiment_types.append(db.dget(e_id, "experiment_type"))
             total_jobs.append(db.dget(e_id, "num_total_jobs"))
+            completed_jobs.append(db.dget(e_id, "completed_jobs"))
 
         d = {
             "ID": [str(e_id) for e_id in all_experiment_ids[-tail:]],
@@ -51,6 +56,7 @@ def protocol_summary(
             "GPUs": num_gpus,
             "Type": experiment_types,
             "Jobs": total_jobs,
+            "Completed Jobs": completed_jobs,
         }
         df = pd.DataFrame(d)
         df["Date"] = df["Date"].map("{:.5}".format)
@@ -62,28 +68,45 @@ def protocol_summary(
         return df
     else:
         if verbose:
+            time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
             print(time_t, "No previously recorded experiments")
         return None
+
+
+def get_progress_bar(total_jobs: int, completed_jobs: int):
+    progress = Progress(
+        TextColumn(
+            "{task.completed:^3.0f}/{task.total:^3.0f}", justify="left", style="white"
+        ),
+        BarColumn(bar_width=10, style="red"),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%", style="white"),
+        auto_refresh=False,
+    )
+
+    task = progress.add_task("queue", total=total_jobs)
+    progress.update(task, completed=completed_jobs, refresh=True)
+    return progress
 
 
 def protocol_table(df, full: bool = True):
     """Generate pretty table of experiment protocol db - preselected db."""
     table = Table(show_header=True, show_footer=False, header_style="bold blue")
-    sta_str = "[green]:heavy_check_mark:[/green]/[red]:heavy_multiplication_x:"
-    table.add_column(sta_str, justify="center")
-    table.add_column("E-ID")
-    table.add_column("Date")
+    table.add_column(":bookmark:", justify="center")
+    table.add_column(":id:", justify="center")
+    table.add_column(":spiral_calendar:", justify="center")
     table.add_column("Project")
     table.add_column("Purpose")
     table.add_column("Type")
     table.add_column("[yellow]:arrow_forward:", justify="center")
-
+    table.add_column("[yellow]:recycle:", justify="center")
+    table.add_column("#CPU", justify="center")
+    table.add_column("#GPU", justify="center")
     # Full option prints also resource requirements of jobs
     if full:
-        table.add_column("#Jobs", justify="center")
-        table.add_column("#CPU", justify="center")
-        table.add_column("#GPU", justify="center")
-        table.add_column("[yellow]:recycle:", justify="center")
+        table.add_column(
+            ":hourglass_flowing_sand: Completed Jobs [yellow]:heavy_check_mark:",
+            justify="center",
+        )
 
     # Add rows of info if dataframe exists (previously recorded experiments)
     if df is not None:
@@ -111,28 +134,32 @@ def protocol_table(df, full: bool = True):
                 status = "[red]:heavy_multiplication_x:"
 
             if full:
+                bar = get_progress_bar(int(row["Jobs"]), int(row["Completed Jobs"]))
                 table.add_row(
                     status,
                     row["ID"],
                     row["Date"],
-                    row["Project"][:20],
-                    row["Purpose"][:25],
+                    row["Project"][:10],
+                    row["Purpose"][:15],
                     exp_type,
                     resource,
-                    str(row["Jobs"]),
+                    str(row["Seeds"]),
                     str(row["CPUs"]),
                     str(row["GPUs"]),
-                    str(row["Seeds"]),
+                    bar,
                 )
             else:
                 table.add_row(
                     status,
                     row["ID"],
                     row["Date"],
-                    row["Project"][:20],
+                    row["Project"][:10],
                     row["Purpose"][:25],
                     exp_type,
                     resource,
+                    str(row["Seeds"]),
+                    str(row["CPUs"]),
+                    str(row["GPUs"]),
                 )
 
     table.border_style = "blue"

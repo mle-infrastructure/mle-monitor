@@ -121,6 +121,7 @@ class MLEProtocol(object):
         )
         self.experiment_ids.append(new_experiment_id)
         self.last_experiment_id = new_experiment_id
+        self.added_experiment_id = new_experiment_id
         if self.verbose:
             Console().log(f"Added experiment {new_experiment_id} to protocol.")
         if save:
@@ -137,36 +138,70 @@ class MLEProtocol(object):
         """Delete an experiment - change status in db."""
         self.db.drem(str(experiment_id))
         self.all_experiment_ids = list(self.db.getall())
-        self.last_experiment_id = int(self.all_experiment_ids[-1])
+        if len(self.all_experiment_ids) > 0:
+            self.last_experiment_id = int(self.all_experiment_ids[-1])
+        else:
+            self.last_experiment_id = 0
         if save:
             self.save()
+
+    def update_progress_bar(
+        self,
+        experiment_id: Union[int, str],
+        completed_increment: int = 0,
+        save: bool = True,
+    ):
+        """Update progress bar of completed jobs using an integer increment."""
+        self.load()
+        experiment_data = self.get(experiment_id)
+        self.update(
+            experiment_id,
+            "completed_jobs",
+            experiment_data["completed_jobs"] + completed_increment,
+            save=save,
+        )
 
     def complete(
         self, experiment_id: Union[int, str], report: bool = False, save: bool = True
     ):
         """Set status of an experiment to completed - change status in db."""
         self.load()
+        experiment_data = self.get(experiment_id)
         # Store experiment directory in GCS bucket under hash
         if self.use_gcs_protocol_storage:
             from .utils import send_gcloud_zip
 
-            zip_to_store = self.get(experiment_id, "e-hash") + ".zip"
-            experiment_dir = self.get(experiment_id, "experiment_dir")
+            zip_to_store = experiment_data["e-hash"] + ".zip"
+            experiment_dir = experiment_data["experiment_dir"]
             send_gcloud_zip(self.cloud_settings, experiment_dir, zip_to_store, True)
             if self.verbose:
                 Console().log(f"Send results to GCS: {zip_to_store}")
 
         # Update and send protocol db
-        time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
+        time_t = datetime.now().strftime("%m/%d/%y %I:%M %p")
+        stop_time = datetime.strptime(time_t, "%m/%d/%y %H:%M %p")
+        start_time = datetime.strptime(
+            experiment_data["start_time"], "%m/%d/%y %H:%M %p"
+        )
+        duration = str(stop_time - start_time)
         self.update(
             experiment_id,
             var_name=[
                 "job_status",
                 "stop_time",
+                "duration",
                 "report_generated",
                 "stored_in_gcloud",
+                "completed_jobs",
             ],
-            var_value=["completed", time_t, report, self.use_gcs_protocol_storage],
+            var_value=[
+                "completed",
+                time_t,
+                duration,
+                report,
+                self.use_gcs_protocol_storage,
+                experiment_data["num_total_jobs"],
+            ],
             save=save,
         )
         if self.verbose:

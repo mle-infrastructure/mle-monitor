@@ -108,20 +108,9 @@ def make_last_experiment(last_data) -> Align:
             Text.from_markup("[b yellow]Status"),
             "Aborted [red]:heavy_multiplication_x:",
         )
-
-    progress = Progress(
-        TextColumn("{task.completed}/{task.total}", justify="left", style="magenta"),
-        BarColumn(bar_width=10, style="magenta"),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-        auto_refresh=False,
-    )
-
-    task = progress.add_task("queue", total=10)
-    progress.update(task, completed=2, refresh=True)
-
     table.add_row(
-        Text.from_markup("[b yellow]#Jobs [green]:heavy_check_mark:"),
-        progress,
+        Text.from_markup("[b yellow]Resource"),
+        last_data["resource"],
     )
     return Align.center(table)
 
@@ -138,14 +127,14 @@ def make_est_completion(time_data) -> Align:
     table.add_column()
     table.add_column()
     table.add_row(
-        Text.from_markup("[b yellow]Configs/Seeds"),
+        Text.from_markup("[b yellow]Conf/Seeds"),
         f"{int(time_data['total_jobs']/time_data['num_seeds'])}/{time_data['num_seeds']}",
     )
     table.add_row(
         Text.from_markup("[b yellow]Total Jobs"), str(time_data["total_jobs"])
     )
     table.add_row(
-        Text.from_markup("[b yellow]Total Batches"), str(time_data["total_batches"])
+        Text.from_markup("[b yellow]# Batches"), str(time_data["total_batches"])
     )
     table.add_row(
         Text.from_markup("[b yellow]Jobs/Batch"), str(time_data["jobs_per_batch"])
@@ -156,10 +145,37 @@ def make_est_completion(time_data) -> Align:
     table.add_row(
         Text.from_markup("[b yellow]Start Time"), str(time_data["start_time"])
     )
+    if time_data["job_status"] == "completed":
+        table.add_row(
+            Text.from_markup("[b yellow]Stop Time"), str(time_data["stop_time"])
+        )
+        table.add_row(
+            Text.from_markup("[b yellow]Duration"), str(time_data["duration"])
+        )
+    else:
+        table.add_row(
+            Text.from_markup("[b yellow]~ Stop Time"), str(time_data["stop_time"])
+        )
+        table.add_row(
+            Text.from_markup("[b yellow]~ Duration"), str(time_data["duration"])
+        )
+    progress = Progress(
+        TextColumn("{task.completed}/{task.total}", justify="left", style="magenta"),
+        BarColumn(bar_width=10, style="magenta"),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        auto_refresh=False,
+    )
+
+    task = progress.add_task("queue", total=time_data["total_jobs"])
+    progress.update(task, completed=time_data["completed_jobs"], refresh=True)
     table.add_row(
-        Text.from_markup("[b yellow]~ Stop Time"), str(time_data["stop_time"])
+        "[b yellow]-----------",
+        "[b yellow]----------------",
     )
     table.add_row(
-        Text.from_markup("[b yellow]~ Duration"), str(time_data["est_duration"])
+        Text.from_markup(
+            ":hourglass_flowing_sand: [b yellow]Jobs [green]:heavy_check_mark:"
+        ),
+        progress,
     )
     return Align.center(table)

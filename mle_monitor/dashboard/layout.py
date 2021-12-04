@@ -59,17 +59,16 @@ class Header:
         grid.add_column(justify="left")
         grid.add_column(justify="right")
         grid.add_row(
-            "General Settings:",
+            "[bold]General Settings :bulb:",
             Header.welcome_ascii[0],
-            dt.datetime.now().ctime().replace(":", "[blink]:[/]"),
+            "[bold]" + dt.datetime.now().ctime().replace("  ", " ") + " :alarm_clock:",
         )
         grid.add_row(
             "\u2022 GCS Sync Protocol: [green]:heavy_check_mark:"
             if self.use_gcs_sync
             else "\u2022 GCS Sync Protocol: [red]:heavy_multiplication_x:",
             Header.welcome_ascii[1],
-            "Author: @RobertTLange :bird:",
-            # [u white link=https://twitter.com/RobertTLange]
+            "[u link=https://twitter.com/RobertTLange]Author: @RobertTLange :bird:",
         )
 
         grid.add_row(
@@ -77,16 +76,16 @@ class Header:
             if self.use_gcs_sync
             else "\u2022 GCS Sync Results: [red]:heavy_multiplication_x:",
             Header.welcome_ascii[2],
-            f"Resource: {self.resource.resource_name}",
+            ":point_right: [u link=https://github.com/mle-infrastructure]MLE-Infrastructure :small_red_triangle:",
         )
         grid.add_row(
             f"\u2022 DB Path: {self.protocol_fname}",
             Header.welcome_ascii[3],
-            "Hi there! [not italic]:hugging_face:[/]",
+            f"Resource: {self.resource.resource_name} :computer:",
         )
         grid.add_row(
-            "",
+            "[bold]Carpe Diem[/bold] :city_sunrise:",
             Header.welcome_ascii[4],
-            "",
+            "[bold]Hi there - You rock!  [not italic]:hugging_face:[/]",
         )
         return Panel(grid, style="white on blue")

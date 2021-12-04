@@ -25,16 +25,20 @@ def get_monitor_db_data(db):
             "e_script": "-",
             "e_config": "-",
             "report_gen": "-",
+            "job_status": "-",
+            "resource": "-",
         }
         time_data = {
             "job_status": "-",
-            "total_jobs": "-",
-            "total_batches": "-",
+            "total_jobs": "1",
+            "total_batches": "1",
+            "completed_jobs": 0,
             "jobs_per_batch": "-",
             "time_per_batch": "-",
             "start_time": "-",
             "stop_time": "-",
-            "est_duration": "-",
+            "duration": "-",
+            "num_seeds": "-",
         }
     return total_data, last_data, time_data
 
@@ -85,12 +89,14 @@ def get_time_experiment(db, last_experiment_id):
     results = {
         "num_seeds": last_experiment["num_seeds"],
         "total_jobs": last_experiment["num_total_jobs"],
+        "completed_jobs": last_experiment["completed_jobs"],
         "total_batches": last_experiment["num_job_batches"],
         "jobs_per_batch": last_experiment["num_jobs_per_batch"],
         "time_per_batch": last_experiment["time_per_job"],
         "start_time": last_experiment["start_time"],
         "stop_time": last_experiment["stop_time"],
-        "est_duration": last_experiment["duration"],
+        "duration": last_experiment["duration"],
+        "job_status": last_experiment["job_status"],
     }
     return results
 
@@ -106,5 +112,6 @@ def get_last_experiment(db, last_experiment_id):
         "e_script": last_experiment["base_fname"],
         "e_config": last_experiment["config_fname"],
         "report_gen": last_experiment["report_generated"],
+        "resource": last_experiment["exec_resource"],
     }
     return results
