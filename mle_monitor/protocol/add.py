@@ -4,7 +4,7 @@ import json
 import datetime as dt
 from datetime import datetime
 from typing import Union, Tuple
-from .utils import load_json_config, load_yaml_config
+from ..utils import load_json_config, load_yaml_config
 
 
 def protocol_experiment(

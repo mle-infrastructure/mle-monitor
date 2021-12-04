@@ -11,4 +11,3 @@ gputil
 pickledb
 plotext
 Pillow
-mle-scheduler

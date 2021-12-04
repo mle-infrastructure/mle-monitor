@@ -2,8 +2,8 @@ import time
 from rich.live import Live
 from rich.console import Console
 from . import MLEProtocol, MLEResource
-from .mle_tracker import MLETracker
-from .dashboard import layout_mle_dashboard, update_mle_dashboard
+from .utils import Tracker
+from .dashboard import layout_dashboard, update_dashboard
 
 
 class MLEDashboard(object):
@@ -11,12 +11,12 @@ class MLEDashboard(object):
         """MLE Resource Dashboard - Rich-based terminal output."""
         self.protocol = protocol
         self.resource = resource
-        self.tracker = MLETracker()
+        self.tracker = Tracker()
 
     def snapshot(self):
         """Get single console output snapshot."""
         # Create the layout
-        layout = layout_mle_dashboard(
+        layout = layout_dashboard(
             self.resource,
             self.protocol.use_gcs_protocol_sync,
             self.protocol.protocol_fname,
@@ -26,13 +26,13 @@ class MLEDashboard(object):
         protocol_data = self.protocol.monitor()
         usage_data = self.tracker.update(resource_data[2])
         # Update the layout and print it
-        layout = update_mle_dashboard(layout, resource_data, protocol_data, usage_data)
+        layout = update_dashboard(layout, resource_data, protocol_data, usage_data)
         Console().print(layout)
 
     def live(self):
         """Run constant monitoring in while loop."""
         # Generate the dashboard layout and display first data
-        layout = layout_mle_dashboard(
+        layout = layout_dashboard(
             self.resource,
             self.protocol.use_gcs_protocol_sync,
             self.protocol.protocol_fname,
@@ -41,7 +41,7 @@ class MLEDashboard(object):
         resource_data = self.resource.monitor()
         protocol_data = self.protocol.monitor()
         usage_data = self.tracker.update(resource_data[2])
-        layout = update_mle_dashboard(layout, resource_data, protocol_data, usage_data)
+        layout = update_dashboard(layout, resource_data, protocol_data, usage_data)
 
         # Start timers for GCS pulling and reloading of local protocol db
         timer_gcs = time.time()
@@ -54,7 +54,7 @@ class MLEDashboard(object):
                 resource_data = self.resource.monitor()
                 protocol_data = self.protocol.monitor()
                 usage_data = self.tracker.update(resource_data[2])
-                layout = update_mle_dashboard(
+                layout = update_dashboard(
                     layout, resource_data, protocol_data, usage_data
                 )
 

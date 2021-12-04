@@ -24,4 +24,4 @@ class MLEResource(object):
         """Get utilization data."""
         # Get resource dependent data
         user_data, host_data, util_data = self.resource.monitor()
-        return user_data, host_data, util_data, self.resource_name
+        return user_data, host_data, util_data

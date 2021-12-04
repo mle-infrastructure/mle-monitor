@@ -15,9 +15,9 @@ from .components import (
 )
 
 
-def update_mle_dashboard(layout, resource_data, protocol_data, usage_data):
+def update_dashboard(layout, resource_data, protocol_data, usage_data):
     """Helper function that fills dashboard with life!"""
-    user_data, host_data, util_data, resource_name = resource_data
+    user_data, host_data, util_data = resource_data
     total_data, last_data, time_data, protocol_table = protocol_data
 
     # # Fill the left-main with life!

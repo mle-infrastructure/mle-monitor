@@ -1,4 +1,4 @@
-class MLETracker(object):
+class Tracker(object):
     def __init__(self):
         """MLE Tracker for Resource Utilization & Running Experiments."""
         # Start storing utilisation history

@@ -36,7 +36,7 @@ class MLEProtocol(object):
 
                 if "credentials_path" in self.cloud_settings:
                     # Set the path to the GCP credentials json file & pull recent db
-                    from .protocol.gcs_sync import set_gcp_credentials
+                    from .protocol import set_gcp_credentials
 
                     set_gcp_credentials(cloud_settings["credentials_path"])
 
@@ -148,7 +148,7 @@ class MLEProtocol(object):
         self.load()
         # Store experiment directory in GCS bucket under hash
         if self.use_gcs_protocol_storage:
-            from .protocol.gcs_zip import send_gcloud_zip
+            from .utils import send_gcloud_zip
 
             zip_to_store = self.get(experiment_id, "e-hash") + ".zip"
             experiment_dir = self.get(experiment_id, "experiment_dir")
@@ -222,7 +222,7 @@ class MLEProtocol(object):
         local_dir_name: Union[None, str] = None,
     ):
         """Retrieve experiment from GCS."""
-        from .protocol.gcs_zip import get_gcloud_zip
+        from .utils import get_gcloud_zip
 
         while True:
             if experiment_id not in self.experiment_ids:
@@ -249,7 +249,7 @@ class MLEProtocol(object):
     def gcs_send(self):
         """Send the local protocol to a GCS bucket."""
         # First store the most recent log
-        from .protocol.gcs_sync import send_gcloud_db
+        from .protocol import send_gcloud_db
 
         send_db = send_gcloud_db(
             self.cloud_settings["project_name"],
@@ -265,7 +265,7 @@ class MLEProtocol(object):
 
     def gcs_pull(self):
         """Pull the remote protocol from a GCS bucket."""
-        from .protocol.gcs_sync import get_gcloud_db
+        from .protocol import get_gcloud_db
 
         accessed_db = get_gcloud_db(
             self.cloud_settings["project_name"],
