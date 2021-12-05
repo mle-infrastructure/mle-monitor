@@ -1,4 +1,6 @@
 from rich.panel import Panel
+from rich.align import Align
+from rich.table import Table
 from .components import (
     make_user_jobs_cluster,
     make_node_jobs_cluster,
@@ -17,38 +19,37 @@ from .components import (
 
 def update_dashboard(layout, resource_data, protocol_data, usage_data):
     """Helper function that fills dashboard with life!"""
-    # # Fill the left-main with life!
-    # if resource_name in ["sge-cluster", "slurm-cluster"]:
-    #     layout["l-box1"].update(
-    #         Panel(
-    #             make_user_jobs_cluster(user_data),
-    #             border_style="red",
-    #             title="Scheduled Jobs by User",
-    #         )
-    #     )
-    #     layout["l-box2"].update(
-    #         Panel(
-    #             make_node_jobs_cluster(host_data),
-    #             border_style="red",
-    #             title="Running Jobs by Node/Partition",
-    #         )
-    #     )
-    # else:
-    #     layout["l-box1"].update(
-    #         Panel(
-    #             make_device_panel_local(host_data),
-    #             border_style="red",
-    #             title="Local - Utilization by Device",
-    #         )
-    #     )
-    #     layout["l-box2"].update(
-    #         Panel(
-    #             make_process_panel_local(user_data),
-    #             border_style="red",
-    #             title="Local - Utilization by Process",
-    #         )
-    #     )
-    #
+    # Fill the left-main with life!
+    if resource_data["resource_name"] in ["sge-cluster", "slurm-cluster"]:
+        table_user = make_user_jobs_cluster(resource_data["user_data"])
+        table_nodes = make_node_jobs_cluster(resource_data["host_data"])
+        grid = Table.grid(expand=True)
+        grid.add_column()
+        grid.add_row(table_user)
+        grid.add_row(table_nodes)
+        layout["left"].update(
+            Panel(
+                Align.center(grid),
+                border_style="red",
+                title="Jobs by User/Resource",
+            )
+        )
+    else:
+        table_device = make_device_panel_local(resource_data["host_data"])
+        table_process = make_process_panel_local(resource_data["user_data"])
+        grid = Table.grid()
+        grid.add_column()
+        grid.add_row(table_device)
+        grid.add_row(table_process)
+
+        layout["left"].update(
+            Panel(
+                Align.center(grid),
+                border_style="red",
+                title="Local - Util by Device/Process",
+            )
+        )
+
     # Fill the center-main with life!
     layout["center"].update(
         Panel(

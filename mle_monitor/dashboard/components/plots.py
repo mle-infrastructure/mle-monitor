@@ -84,6 +84,7 @@ def make_protocol_total_plot(experiment_hist) -> Align:
         label="Total",
     )
     plt.figure.plot_size(40, 9)
+
     plot_str = plotext_helper()
     decoder = AnsiDecoder()
     lines = list(decoder.decode(plot_str))
@@ -103,11 +104,11 @@ def make_protocol_daily_plot(experiment_hist) -> Align:
         plt.stacked_bar(
             [""] + experiment_hist["day"],
             [
-                [0] + experiment_hist["day_exp"]["hyperparameter-search"],
+                [0.1] + experiment_hist["day_exp"]["hyperparameter-search"],
                 [0] + experiment_hist["day_exp"]["multiple-configs"],
                 [0] + experiment_hist["day_exp"]["single-config"],
             ],
-            label=["search", "config", "single"],
+            label=["HS", "MC", "SC"],
             marker="sd",
             color=["yellow", "red", "blue"],
         )

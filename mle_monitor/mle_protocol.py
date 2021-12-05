@@ -112,6 +112,26 @@ class MLEProtocol(object):
             "num_gpus",
         ]
 
+    @property
+    def standard_default(self):
+        """All required keys in standard dict to supply in `add`."""
+        return {
+            "purpose": "None provided",
+            "project_name": "default",
+            "exec_resource": "local",
+            "experiment_dir": "experiments",
+            "experiment_type": "single",
+            "base_fname": "main.py",
+            "config_fname": "base_config.yaml",
+            "num_seeds": 1,
+            "num_total_jobs": 1,
+            "num_job_batches": 1,
+            "num_jobs_per_batch": 1,
+            "time_per_job": "00:01:00",
+            "num_cpus": 1,
+            "num_gpus": 0,
+        }
+
     def add(
         self,
         standard: dict,
@@ -121,7 +141,8 @@ class MLEProtocol(object):
     ):
         """Add an experiment to the database."""
         for k in self.standard_keys:
-            assert k in standard.keys()
+            if k not in standard.keys():
+                standard[k] = self.standard_default[k]
         assert standard["experiment_type"] in [
             "hyperparameter-search",
             "multiple-configs",

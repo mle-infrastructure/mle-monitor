@@ -47,7 +47,7 @@ class LocalResource(object):
             proc_data["cmdline"].append(p["cmdline"])
         return proc_data
 
-    def get_cpu_processes(self, top_k: int = 3):
+    def get_cpu_processes(self, top_k: int = 4):
         """Get list of process sorted by Memory (MB)/CPU Usage (CPU%)."""
         listOfProcObjects = []
         # Iterate over the list

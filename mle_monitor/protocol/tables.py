@@ -123,6 +123,10 @@ def protocol_table(df, full: bool = True):
 
             if row["Type"] == "hyperparameter-search":
                 exp_type = "search"
+            elif row["Type"] == "multiple-configs":
+                exp_type = "config"
+            elif row["Type"] == "single-config":
+                exp_type = "single"
             else:
                 exp_type = row["Type"]
 
