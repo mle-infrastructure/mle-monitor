@@ -17,9 +17,6 @@ from .components import (
 
 def update_dashboard(layout, resource_data, protocol_data, usage_data):
     """Helper function that fills dashboard with life!"""
-    user_data, host_data, util_data = resource_data
-    total_data, last_data, time_data, protocol_table = protocol_data
-
     # # Fill the left-main with life!
     # if resource_name in ["sge-cluster", "slurm-cluster"]:
     #     layout["l-box1"].update(
@@ -55,7 +52,7 @@ def update_dashboard(layout, resource_data, protocol_data, usage_data):
     # Fill the center-main with life!
     layout["center"].update(
         Panel(
-            make_protocol(protocol_table),
+            make_protocol(protocol_data["protocol_table"]),
             border_style="bright_blue",
             title="Experiment Protocol Summary",
         )
@@ -64,21 +61,21 @@ def update_dashboard(layout, resource_data, protocol_data, usage_data):
     # Fill the right-main with life!
     layout["r-box1"].update(
         Panel(
-            make_total_experiments(total_data),
+            make_total_experiments(protocol_data["total_data"]),
             border_style="yellow",
             title="Total Number of Experiment Runs",
         )
     )
     layout["r-box2"].update(
         Panel(
-            make_last_experiment(last_data),
+            make_last_experiment(protocol_data["last_data"]),
             border_style="yellow",
             title="Last Experiment Configuration",
         )
     )
     layout["r-box3"].update(
         Panel(
-            make_est_completion(time_data),
+            make_est_completion(protocol_data["time_data"]),
             border_style="yellow",
             title="Experiment Completion Time",
         )
@@ -90,8 +87,8 @@ def update_dashboard(layout, resource_data, protocol_data, usage_data):
             make_cpu_util_plot(usage_data),
             title=(
                 "CPU Utilization"
-                f" - Total: {int(util_data['cores_util'])}/"
-                f"{int(util_data['cores'])}T"
+                f" - Total: {int(resource_data['util_data']['cores_util'])}/"
+                f"{int(resource_data['util_data']['cores'])}T"
             ),
             border_style="red",
         ),
@@ -101,8 +98,8 @@ def update_dashboard(layout, resource_data, protocol_data, usage_data):
             make_memory_util_plot(usage_data),
             title=(
                 "Memory Utilization"
-                f" - Total: {int(util_data['mem_util'])}/"
-                f"{int(util_data['mem'])}G"
+                f" - Total: {int(resource_data['util_data']['mem_util'])}/"
+                f"{int(resource_data['util_data']['mem'])}G"
             ),
             border_style="red",
         )
@@ -110,14 +107,14 @@ def update_dashboard(layout, resource_data, protocol_data, usage_data):
 
     layout["f-box3"].update(
         Panel(
-            make_protocol_total_plot(usage_data),
+            make_protocol_total_plot(protocol_data["summary_data"]),
             title=("Protocol Timeline: Total Experiments"),
             border_style="yellow",
         ),
     )
     layout["f-box4"].update(
         Panel(
-            make_protocol_daily_plot(usage_data),
+            make_protocol_daily_plot(protocol_data["summary_data"]),
             title=("Protocol Timeline: Experiments/Day"),
             border_style="yellow",
         )

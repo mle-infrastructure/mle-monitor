@@ -265,7 +265,14 @@ class MLEProtocol(object):
         protocol_table = self.summary(
             tail=50, verbose=False, return_table=True, full=True
         )
-        return total_data, last_data, time_data, protocol_table
+        summary_data = {}
+        return {
+            "total_data": total_data,
+            "last_data": last_data,
+            "time_data": time_data,
+            "summary_data": summary_data,
+            "protocol_table": protocol_table,
+        }
 
     def retrieve(
         self,

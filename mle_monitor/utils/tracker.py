@@ -9,7 +9,7 @@ class Tracker(object):
         # Storage limit
         self.limit = 100000
 
-    def update(self, util_data: dict):
+    def update(self, util_data: dict, summary_data: dict):
         # Add utilisation data to storage dictionaries
         self.times_date.append(util_data["time_date"])
         self.times_hour.append(util_data["time_hour"])
