@@ -153,7 +153,10 @@ class MLEProtocol(object):
         """Delete an experiment - change status in db."""
         self.db.drem(str(experiment_id))
         self.all_experiment_ids = list(self.db.getall())
-        self.all_experiment_ids.remove("summary")
+        try:
+            self.all_experiment_ids.remove("summary")
+        except:
+            pass
         if len(self.all_experiment_ids) > 0:
             self.last_experiment_id = int(self.all_experiment_ids[-1])
         else:
@@ -199,11 +202,9 @@ class MLEProtocol(object):
                 Console().log(f"Send results to GCS: {zip_to_store}")
 
         # Update and send protocol db
-        time_t = datetime.now().strftime("%m/%d/%y %I:%M %p")
-        stop_time = datetime.strptime(time_t, "%m/%d/%y %I:%M %p")
-        start_time = datetime.strptime(
-            experiment_data["start_time"], "%m/%d/%y %I:%M %p"
-        )
+        time_t = datetime.now().strftime("%m/%d/%y %H:%M")
+        stop_time = datetime.strptime(time_t, "%m/%d/%y %H:%M")
+        start_time = datetime.strptime(experiment_data["start_time"], "%m/%d/%y %H:%M")
         duration = str(stop_time - start_time)
         self.update(
             experiment_id,

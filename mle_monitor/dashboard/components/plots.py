@@ -68,33 +68,20 @@ def make_memory_util_plot(mem_hist) -> Align:
     return Align.center(message)
 
 
-def make_protocol_total_plot(exp_total_hist) -> Align:
+def make_protocol_total_plot(experiment_hist) -> Align:
     """Plot curve displaying a memory usage times series for the cluster."""
-    print(exp_total_hist)
     plt.clear_plot()
     plt.datetime.set_datetime_form(date_form="%m/%d/%y %H:%M")
-
-    prices = [
-        1763.0,
-        1740.3,
-        1752.7,
-        1749.8,
-        1777.0,
-    ]
-    dates = [
-        "07/10/20 04:33",
-        "07/13/20 04:33",
-        "07/14/20 04:33",
-        "07/15/20 04:33",
-        "07/16/20 04:33",
-    ]
 
     plt.canvas_color("black")
     plt.axes_color("black")
     plt.ticks_color("white")
-    plt.plot_date(dates, prices, marker="dot", color="blue", label="1")
     plt.plot_date(
-        dates, [p - 10 for p in prices], marker="dot", color="yellow", label="2"
+        experiment_hist["time"],
+        experiment_hist["total_exp"]["all"],
+        marker="dot",
+        color="yellow",
+        label="Total",
     )
     plt.figure.plot_size(40, 9)
     plot_str = plotext_helper()
@@ -109,29 +96,28 @@ def make_protocol_total_plot(exp_total_hist) -> Align:
     return Align.center(message)
 
 
-def make_protocol_daily_plot(exp_daily_hist) -> Align:
+def make_protocol_daily_plot(experiment_hist) -> Align:
     """Plot curve displaying a memory usage times series for the cluster."""
-    pizzas = ["Sausage", "Pepperoni", "Mushrooms", "Cheese", "Chicken", "Beef"]
-    male_percentages = [14, 36, 11, 8, 7, 4]
-    female_percentages = [12, 20, 35, 15, 2, 1]
     plt.clear_plot()
-    plt.stacked_bar(
-        pizzas,
-        [male_percentages, female_percentages],
-        label=["men", "women"],
-        marker="sd",
-        color=["red", "yellow"],
-    )
+    try:
+        plt.stacked_bar(
+            [""] + experiment_hist["day"],
+            [
+                [0] + experiment_hist["day_exp"]["hyperparameter-search"],
+                [0] + experiment_hist["day_exp"]["multiple-configs"],
+                [0] + experiment_hist["day_exp"]["single-config"],
+            ],
+            label=["search", "config", "single"],
+            marker="sd",
+            color=["yellow", "red", "blue"],
+        )
+    except Exception:
+        pass
     plt.figure.plot_size(40, 9)
     plt.canvas_color("black")
     plt.axes_color("black")
     plt.ticks_color("white")
 
-    # # Get time points start and end of monitored period
-    # xticks = [0, len(mem_hist["times_hour"]) - 1]
-    # xlabels = [
-    #     mem_hist["times_date"][i][:5] + "-" + mem_hist["times_hour"][i] for i in xticks
-    # ]
     plot_str = plotext_helper()
     decoder = AnsiDecoder()
     lines = list(decoder.decode(plot_str))
