@@ -30,15 +30,15 @@ def get_monitor_db_data(db):
         }
         time_data = {
             "job_status": "-",
-            "total_jobs": "1",
-            "total_batches": "1",
+            "total_jobs": 1,
+            "total_batches": 1,
             "completed_jobs": 0,
             "jobs_per_batch": "-",
             "time_per_batch": "-",
             "start_time": "-",
             "stop_time": "-",
             "duration": "-",
-            "num_seeds": "-",
+            "num_seeds": 1,
         }
     return total_data, last_data, time_data
 

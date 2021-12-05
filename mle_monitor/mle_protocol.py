@@ -122,6 +122,11 @@ class MLEProtocol(object):
         """Add an experiment to the database."""
         for k in self.standard_keys:
             assert k in standard.keys()
+        assert standard["experiment_type"] in [
+            "hyperparameter-search",
+            "multiple-configs",
+            "single-config",
+        ]
         self.db, new_experiment_id = protocol_experiment(
             self.db, self.last_experiment_id, standard, extra
         )
@@ -148,6 +153,7 @@ class MLEProtocol(object):
         """Delete an experiment - change status in db."""
         self.db.drem(str(experiment_id))
         self.all_experiment_ids = list(self.db.getall())
+        self.all_experiment_ids.remove("summary")
         if len(self.all_experiment_ids) > 0:
             self.last_experiment_id = int(self.all_experiment_ids[-1])
         else:
@@ -265,7 +271,24 @@ class MLEProtocol(object):
         protocol_table = self.summary(
             tail=50, verbose=False, return_table=True, full=True
         )
-        summary_data = {}
+        summary_data = self.get("summary")
+        if not summary_data:
+            summary_data = {
+                "time": [],
+                "day": [],
+                "total_exp": {
+                    "all": [],
+                    "hyperparameter-search": [],
+                    "multiple-configs": [],
+                    "single-config": [],
+                },
+                "day_exp": {
+                    "all": [],
+                    "hyperparameter-search": [],
+                    "multiple-configs": [],
+                    "single-config": [],
+                },
+            }
         return {
             "total_data": total_data,
             "last_data": last_data,

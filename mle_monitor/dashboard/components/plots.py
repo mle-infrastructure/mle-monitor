@@ -9,7 +9,6 @@ def make_cpu_util_plot(cpu_hist) -> Align:
     """Plot curve displaying a CPU usage times series for the cluster."""
     x = np.arange(len(cpu_hist["rel_cpu_util"])).tolist()
     y = np.array(cpu_hist["rel_cpu_util"]).tolist()
-
     # Clear the plot and draw the utilisation lines
     plt.clear_plot()
     plt.plot(x, y, marker="dot", color="red", label="% CPU Util.")
@@ -71,6 +70,7 @@ def make_memory_util_plot(mem_hist) -> Align:
 
 def make_protocol_total_plot(exp_total_hist) -> Align:
     """Plot curve displaying a memory usage times series for the cluster."""
+    print(exp_total_hist)
     plt.clear_plot()
     plt.datetime.set_datetime_form(date_form="%m/%d/%y %H:%M")
 

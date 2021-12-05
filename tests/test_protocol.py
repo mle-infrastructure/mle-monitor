@@ -62,7 +62,7 @@ def test_monitor_protocol():
     protocol = MLEProtocol(protocol_fname="mle_protocol.db")
     _ = protocol.add(meta_data, save=False)
     # Get the monitoring data - used later in dashboard
-    total_data, last_data, time_data, protocol_table = protocol.monitor()
+    data = protocol.monitor()
     total_keys = [
         "total",
         "run",
@@ -77,10 +77,10 @@ def test_monitor_protocol():
         "retrieved",
     ]
     for k in total_keys:
-        assert k in total_data.keys()
+        assert k in data["total_data"].keys()
     last_keys = ["e_id", "e_dir", "e_type", "e_script", "e_config", "report_gen"]
     for k in last_keys:
-        assert k in last_data.keys()
+        assert k in data["last_data"].keys()
     time_keys = [
         "total_jobs",
         "total_batches",
@@ -91,5 +91,5 @@ def test_monitor_protocol():
         "duration",
     ]
     for k in time_keys:
-        assert k in time_data.keys()
+        assert k in data["time_data"].keys()
     return

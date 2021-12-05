@@ -11,6 +11,9 @@ def protocol_experiment(
     db, last_experiment_id, standard: dict, extra: Union[dict, None] = None
 ):
     """Add the new experiment to the protocol database."""
+    # Add experiment summary data
+    add_experiment_summary(db, standard["experiment_type"])
+
     # Create a new db experiment entry
     new_experiment_id = str(last_experiment_id + 1)
     db.dcreate(new_experiment_id)
@@ -106,3 +109,58 @@ def estimate_experiment_duration(
     est_duration = tot_days + ":" + tot_hours + ":" + tot_mins
     stop_time = end_date.strftime("%m/%d/%y %I:%M %p")
     return est_duration, stop_time
+
+
+def add_experiment_summary(db, experiment_type: str):
+    """Update the summary data of the protocol."""
+    all_experiment_types = [
+        "hyperparameter-search",
+        "multiple-configs",
+        "single-config",
+    ]
+    start_time = datetime.now().strftime("%m/%d/%y %I:%M %p")
+    start_day = datetime.now().strftime("%m/%d/%y")
+    if "summary" not in list(db.getall()):
+        db.dcreate("summary")
+        # Create dict that stores timeseries of cumulative experiments by type
+        db.dadd("summary", ("time", [start_time]))
+        total_dict = {"all": [1]}
+        for k in all_experiment_types:
+            total_dict[k] = [0]
+        total_dict[experiment_type][-1] += 1
+        db.dadd("summary", ("total_exp", total_dict))
+
+        # Create dict that stores timeseries of daily experiments by type
+        db.dadd("summary", ("day", [start_day]))
+        day_dict = {"all": [1]}
+        for k in all_experiment_types:
+            day_dict[k] = [0]
+        day_dict[experiment_type][-1] += 1
+        db.dadd("summary", ("day_exp", day_dict))
+    else:
+        data = db.get("summary")
+        # Add new experiment to total dict
+        total_dict = data["total_exp"]
+        data["time"].append(start_time)
+        db.dadd("summary", ("time", data["time"]))
+        total_dict["all"].append(total_dict["all"][-1] + 1)
+        for k in all_experiment_types:
+            total_dict[k].append(total_dict[k][-1])
+        total_dict[experiment_type][-1] += 1
+        db.dadd("summary", ("total_exp", total_dict))
+
+        # Add new experiment to daily dict
+        day_dict = data["day_exp"]
+        try:
+            idx = data["day"].index(start_day)
+            day_dict["all"][idx] += 1
+            day_dict[experiment_type][idx] += 1
+            db.dadd("summary", ("day_exp", day_dict))
+        except Exception:
+            data["day"].append(start_day)
+            db.dadd("summary", ("day", data["day"]))
+            for k in all_experiment_types:
+                day_dict[k].append(0)
+            day_dict[experiment_type][-1] += 1
+            db.dadd("summary", ("day_exp", day_dict))
+    return

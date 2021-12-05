@@ -24,9 +24,7 @@ class MLEDashboard(object):
         # Retrieve the data
         resource_data = self.resource.monitor()
         protocol_data = self.protocol.monitor()
-        usage_data = self.tracker.update(
-            resource_data["util_data"], protocol_data["summary_data"]
-        )
+        usage_data = self.tracker.update(resource_data["util_data"])
         # Update the layout and print it
         layout = update_dashboard(layout, resource_data, protocol_data, usage_data)
         Console().print(layout)
@@ -42,9 +40,7 @@ class MLEDashboard(object):
 
         resource_data = self.resource.monitor()
         protocol_data = self.protocol.monitor()
-        usage_data = self.tracker.update(
-            resource_data["util_data"], protocol_data["summary_data"]
-        )
+        usage_data = self.tracker.update(resource_data["util_data"])
         layout = update_dashboard(layout, resource_data, protocol_data, usage_data)
 
         # Start timers for GCS pulling and reloading of local protocol db

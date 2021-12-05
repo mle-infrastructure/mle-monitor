@@ -8,6 +8,7 @@ def load_protocol_db(protocol_fname):
     db = pickledb.load(protocol_fname, False, sig=False)
     # Get the most recent experiment id
     all_experiment_ids = list(db.getall())
+    all_experiment_ids.remove("summary")
 
     def natural_keys(text: str):
         """Helper function for sorting alpha-numeric strings."""
