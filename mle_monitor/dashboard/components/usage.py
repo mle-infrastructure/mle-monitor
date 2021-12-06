@@ -4,7 +4,7 @@ from rich.table import Table
 from rich.text import Text
 
 
-def make_user_jobs_cluster(user_data) -> Align:
+def make_user_jobs_cluster(user_data: dict) -> Align:
     """Generate rich table summarizing jobs scheduled by users."""
     all_active_users = min(len(user_data["total"]), 13)
     sum_all = str(sum(user_data["total"]))
@@ -44,7 +44,7 @@ def make_user_jobs_cluster(user_data) -> Align:
     return table
 
 
-def make_node_jobs_cluster(host_data) -> Align:
+def make_node_jobs_cluster(host_data: dict, col_title: str) -> Align:
     """Generate rich table summarizing jobs running on different nodes."""
     all_nodes = len(host_data["total"])
     sum_all = str(sum(host_data["total"]))
@@ -60,7 +60,7 @@ def make_node_jobs_cluster(host_data) -> Align:
         box=box.SIMPLE,
     )
     table.add_column(
-        "PART/QUEUE",
+        col_title,
         Text.from_markup("[b]Sum", justify="right"),
         style="white",
         justify="left",
@@ -80,7 +80,7 @@ def make_node_jobs_cluster(host_data) -> Align:
     return table
 
 
-def make_device_panel_local(device_data) -> Align:
+def make_device_panel_local(device_data: dict) -> Align:
     """Generate rich table summarizing jobs running on different nodes."""
     sum_all = str(round(sum(device_data["percent_util"]), 1))
     t1 = Table(

@@ -1,6 +1,5 @@
 from .plots import (
-    make_cpu_util_plot,
-    make_memory_util_plot,
+    make_util_plot,
     make_protocol_total_plot,
     make_protocol_daily_plot,
 )
@@ -18,8 +17,7 @@ from .usage import (
 )
 
 __all__ = [
-    "make_cpu_util_plot",
-    "make_memory_util_plot",
+    "make_util_plot",
     "make_protocol_total_plot",
     "make_protocol_daily_plot",
     "make_protocol",

@@ -10,28 +10,38 @@ def layout_dashboard(resource: str, use_gcs_sync: bool, protocol_fname: str) -> 
     # Split in three vertical sections: Welcome, core info, help + util plots
     layout.split_column(
         Layout(name="header", size=7),
-        Layout(name="main", ratio=3),
-        Layout(name="footer", ratio=1),
+        Layout(name="main"),
     )
     # Split center into 3 horizontal sections
     layout["main"].split_row(
-        Layout(name="left", ratio=1),
-        Layout(name="center", ratio=3),
-        Layout(name="right", ratio=1),
+        Layout(name="left", ratio=2),
+        Layout(name="right", ratio=8),
+    )
+
+    # Split center into 3 horizontal sections
+    layout["right"].split_column(
+        Layout(name="top-right", ratio=6),
+        Layout(name="bottom-right", ratio=2),
+    )
+
+    # Split center into 3 horizontal sections
+    layout["top-right"].split_row(
+        Layout(name="top-right-left", ratio=6),
+        Layout(name="top-right-right", ratio=2),
     )
 
     # Split center right into total experiments, last experiments, ETA
-    layout["right"].split_column(
-        Layout(name="r-box1", ratio=3),
-        Layout(name="r-box2", ratio=3),
-        Layout(name="r-box3", ratio=4),
+    layout["top-right-right"].split_column(
+        Layout(name="top-right-right-1", ratio=3),
+        Layout(name="top-right-right-2", ratio=3),
+        Layout(name="top-right-right-3", ratio=4),
     )
+
     # Split bottom into toolbox command info and cluster util termplots
-    layout["footer"].split_row(
-        Layout(name="f-box1", ratio=1),
-        Layout(name="f-box2", ratio=1),
-        Layout(name="f-box3", ratio=1),
-        Layout(name="f-box4", ratio=1),
+    layout["bottom-right"].split_row(
+        Layout(name="bottom-right-1", ratio=1),
+        Layout(name="bottom-right-2", ratio=1),
+        Layout(name="bottom-right-3", ratio=1),
     )
     # # Fill the header with life!
     layout["header"].update(Header(resource, use_gcs_sync, protocol_fname))
