@@ -23,10 +23,23 @@ class MLEResource(object):
     def monitor(self):
         """Get utilization data."""
         # Get resource dependent data
-        user_data, host_data, util_data = self.resource.monitor()
-        return {
-            "resource_name": self.resource_name,
-            "user_data": user_data,
-            "host_data": host_data,
-            "util_data": util_data,
-        }
+        if self.resource_name == "local":
+            user_data, host_data, util_data = self.resource.monitor()
+            return {
+                "resource_name": self.resource_name,
+                "user_data": user_data,
+                "host_data": host_data,
+                "util_data": util_data,
+            }
+        elif self.resource_name in ["sge-cluster", "slurm-cluster"]:
+            user_data, host_data, util_data, node_data = self.resource.monitor()
+            return {
+                "resource_name": self.resource_name,
+                "user_data": user_data,
+                "host_data": host_data,
+                "util_data": util_data,
+                "node_data": node_data,
+            }
+        else:
+            gcp_data = self.resource.monitor()
+            return gcp_data

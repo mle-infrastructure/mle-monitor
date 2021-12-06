@@ -9,7 +9,7 @@ def make_user_jobs_cluster(user_data) -> Align:
     all_active_users = min(len(user_data["total"]), 13)
     sum_all = str(sum(user_data["total"]))
     sum_running = str(sum(user_data["run"]))
-    sum_login = str(sum(user_data["login"]))
+    # sum_login = str(sum(user_data["login"]))
     sum_wait = str(sum(user_data["wait"]))
 
     # Create table with structure with aggregated numbers
@@ -60,7 +60,7 @@ def make_node_jobs_cluster(host_data) -> Align:
         box=box.SIMPLE,
     )
     table.add_column(
-        "NODE/PART",
+        "PART/QUEUE",
         Text.from_markup("[b]Sum", justify="right"),
         style="white",
         justify="left",

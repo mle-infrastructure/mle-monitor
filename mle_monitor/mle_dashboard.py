@@ -51,15 +51,16 @@ class MLEDashboard(object):
         with Live(console=Console(), screen=True, auto_refresh=True) as live:
             live.update(layout)
             while True:
-                resource_data = self.resource.monitor()
-                protocol_data = self.protocol.monitor()
-                usage_data = self.tracker.update(
-                    resource_data["util_data"], protocol_data["summary_data"]
-                )
-                layout = update_dashboard(
-                    layout, resource_data, protocol_data, usage_data
-                )
                 try:
+                    resource_data = self.resource.monitor()
+                    protocol_data = self.protocol.monitor()
+                    usage_data = self.tracker.update(
+                        resource_data["util_data"], protocol_data["summary_data"]
+                    )
+                    layout = update_dashboard(
+                        layout, resource_data, protocol_data, usage_data
+                    )
+
                     # Every 10 seconds reload local database file
                     if time.time() - timer_db > 10:
                         self.protocol.load(pull_gcs=False)

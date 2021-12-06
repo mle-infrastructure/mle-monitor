@@ -1,6 +1,8 @@
 from datetime import datetime
 import subprocess as sp
 from typing import Union
+import numpy as np
+import pandas as pd
 
 
 class SGEResource(object):
@@ -10,10 +12,11 @@ class SGEResource(object):
 
     def monitor(self):
         """Helper to get all utilisation data for resource."""
-        user_data = self.get_user_data()
-        host_data = self.get_host_data()
+        user_data, job_df = self.get_user_data()
+        queue_data = self.get_queue_data(job_df)
+        node_data = self.get_node_data(job_df)
         util_data = self.get_util_data()
-        return user_data, host_data, util_data
+        return user_data, queue_data, util_data, node_data
 
     def get_user_data(self):
         """Get jobs scheduled by Slurm cluster users.
@@ -24,193 +27,119 @@ class SGEResource(object):
         all_users = [u.decode() for u in all_users]
         user_cmd = [["-u", u] for u in all_users]
         user_cmd = [item for sublist in user_cmd for item in sublist]
-        for user in all_users:
-            try:
-                queue_all = len(
-                    sp.check_output(
-                        ["qstat", "-u", user, "-q", self.monitor_config["queue"]]
-                    ).split(b"\n")[:-1]
-                )
-                queue_all -= 2 * (queue_all != 0)
+        queue_cmd = [["-q", q] for q in self.monitor_config["queues"]]
+        queue_cmd = [item for sublist in queue_cmd for item in sublist]
 
-                queue_spare = len(
-                    sp.check_output(
-                        ["qstat", "-u", user, "-q", self.monitor_config["spare"]]
-                    ).split(b"\n")[:-1]
-                )
-                queue_spare -= 2 * (queue_spare != 0)
-                total_jobs = queue_all + queue_spare
+        # Check all users and queues in one go
+        all_job_infos = sp.check_output(["qstat", *user_cmd, *queue_cmd]).split(b"\n")[
+            2:-1
+        ]
 
-                if total_jobs != 0:
-                    qlogins, running, waiting = 0, 0, 0
-                    # Get logins.
-                    if queue_spare != 0:
-                        ps = sp.Popen(
-                            ("qstat", "-u", user, "-q", self.monitor_config["spare"]),
-                            stdout=sp.PIPE,
-                        )
-                        try:
-                            qlogins = sp.check_output(
-                                ("grep", "QLOGIN"), stdin=ps.stdout
-                            )
-                            ps.wait()
-                            qlogins = len(qlogins.split(b"\n")[:-1])
-                        except Exception:
-                            pass
+        job_df = {
+            "user": [],
+            "queue": [],
+            "status": [],
+            "node": [],
+        }
 
-                    # Get waiting jobs.
-                    if queue_all != 0:
-                        waiting = len(
-                            sp.check_output(
-                                [
-                                    "qstat",
-                                    "-s",
-                                    "p",  # pending
-                                    "-u",
-                                    user,
-                                    "-q",
-                                    self.monitor_config["queue"],
-                                ]
-                            ).split(b"\n")[:-1]
-                        )
-                        waiting -= 2 * (waiting != 0)
+        # Clean all jobs (qlogin, qsub, etc.) + get unique users/hosts
+        for job in all_job_infos:
+            job_clean = job.decode().split(" ")
+            job_clean = list(filter(None, job_clean))
+            host_ip = job_clean[-2].split("@")
+            job_df["user"].append(job_clean[3])
 
-                    # Get running jobs.
-                    if queue_all != 0:
-                        running = len(
-                            sp.check_output(
-                                [
-                                    "qstat",
-                                    "-s",
-                                    "r",
-                                    "-u",
-                                    user,
-                                    "-q",
-                                    self.monitor_config["queue"],
-                                ]
-                            ).split(b"\n")[:-1]
-                        )
-                        running -= 2 * (running != 0)
+            if len(host_ip) > 1:
+                job_df["queue"].append(host_ip[0])
+                job_df["node"].append(host_ip[1][:-1])
+            else:
+                job_df["queue"].append(None)
+                job_df["node"].append(None)
 
-                    # Add a row for each user that has running jobs
-                    if qlogins + running != 0:
-                        user_data["user"].append(user)
-                        user_data["total"].append(total_jobs)
-                        user_data["run"].append(running)
-                        user_data["wait"].append(waiting)
-                        user_data["login"].append(qlogins)
-            except Exception:
-                pass
-        return user_data
+            if "QLOGIN" in job_clean and job_clean[4] == "r":
+                job_df["status"].append("LOGIN")
+            elif "QLOGIN" not in job_clean and job_clean[4] == "r":
+                job_df["status"].append("R")
+            else:
+                job_df["status"].append("PD")
+        job_df = pd.DataFrame(job_df)
 
-    def get_host_data(self):
-        """Get jobs running on different SGE cluster hosts.
-        Return dictionary with `host_id`, `total`, `run`, `login`.
-        """
+        # Loop over unique users and construct data to show
+        unique_users = job_df.user.unique().tolist()
+        for u_id in unique_users:
+            sub_df = job_df.loc[job_df["user"] == u_id]
+            user_data["user"].append(u_id)
+            user_data["total"].append(sub_df.shape[0])
+            sub_run = sub_df.loc[sub_df["status"] == "R"]
+            user_data["run"].append(sub_run.shape[0])
+            sub_wait = sub_df.loc[sub_df["status"] == "PD"]
+            user_data["wait"].append(sub_wait.shape[0])
+            sub_login = sub_df.loc[sub_df["status"] == "LOGIN"]
+            user_data["login"].append(sub_login.shape[0])
+
+        # Sort users based on total jobs in decreasing order
+        sort_ids = np.argsort(-np.array(user_data["total"]))
+        user_data["user"] = [user_data["user"][i] for i in sort_ids]
+        user_data["total"] = [user_data["total"][i] for i in sort_ids]
+        user_data["run"] = [user_data["run"][i] for i in sort_ids]
+        user_data["wait"] = [user_data["wait"][i] for i in sort_ids]
+        user_data["login"] = [user_data["login"][i] for i in sort_ids]
+        return user_data, job_df
+
+    def get_queue_data(self, job_df: pd.DataFrame):
+        """Get jobs running on different SGE queues."""
         host_data = {"host_id": [], "total": [], "run": [], "login": []}
-        try:
-            all_users = sp.check_output(["qconf", "-suserl"]).split(b"\n")[:-1]
-            all_users = [u.decode() for u in all_users]
-            user_cmd = [["-u", u] for u in all_users]
-            user_cmd = [item for sublist in user_cmd for item in sublist]
-            for host_id in self.monitor_config["node_ids"]:
-                queue_all, queue_spare = 0, 0
-                qlogins, running = 0, 0
-                cmd = ["qstat", "-q", self.monitor_config["queue"]] + user_cmd
-                ps = sp.Popen(cmd, stdout=sp.PIPE)
-                try:
-                    queue_all = sp.check_output(
-                        ("grep", self.monitor_config["node_reg_exp"] + host_id),
-                        stdin=ps.stdout,
-                    )
-                    ps.wait()
-                    queue_all = len(queue_all.split(b"\n")[:-1])
-                except Exception:
-                    pass
-                cmd = ["qstat", "-q", self.monitor_config["spare"]] + user_cmd
-                ps = sp.Popen(cmd, stdout=sp.PIPE)
-                try:
-                    queue_spare = sp.check_output(
-                        ("grep", self.monitor_config["node_reg_exp"] + host_id),
-                        stdin=ps.stdout,
-                    )
-                    ps.wait()
-                    # print(queue_spare)
-                    queue_spare = len(queue_spare.split(b"\n")[:-1])
-                except Exception:
-                    pass
-
-                if queue_all != 0:
-                    cmd = [
-                        "qstat",
-                        "-s",
-                        "r",
-                        "-q",
-                        self.monitor_config["queue"],
-                    ] + user_cmd
-                    ps = sp.Popen(cmd, stdout=sp.PIPE)
-                    try:
-                        running = sp.check_output(
-                            ("grep", self.monitor_config["node_reg_exp"] + host_id),
-                            stdin=ps.stdout,
-                        )
-                        ps.wait()
-                        running = len(running.split(b"\n")[:-1])
-                    except Exception:
-                        pass
-
-                # if queue_spare != 0:
-                #     cmd = ["qstat", "-s", "r", "-q", mle_config.sge.info.spare] + user_cmd
-                #     ps = sp.Popen(cmd, stdout=sp.PIPE)
-                #     try:
-                #         qlogins = sp.check_output(
-                #             ("grep", mle_config.sge.info.node_reg_exp[0] + host_id),
-                #             stdin=ps.stdout,
-                #         )
-                #         ps.wait()
-                #         qlogins = len(qlogins.split(b"\n")[:-1])
-                #     except Exception:
-                #         pass
-
-                # TODO: Figure out double grep and why only my jobs are found
-                total_jobs = running + qlogins
-                # Add a row for each host in the SGE cluster
-                host_data["host_id"].append(host_id)
-                host_data["total"].append(total_jobs)
-                host_data["run"].append(running)
-                host_data["login"].append(qlogins)
-        except Exception:
-            pass
+        job_df = job_df[job_df.status != "PD"]
+        unique_partitions = job_df.queue.unique().tolist()
+        for h_id in unique_partitions:
+            sub_df = job_df.loc[job_df["queue"] == h_id]
+            host_data["host_id"].append(h_id)
+            host_data["total"].append(sub_df.shape[0])
+            sub_run = sub_df.loc[sub_df["status"] == "R"]
+            host_data["run"].append(sub_run.shape[0])
+            sub_login = sub_df.loc[sub_df["status"] == "LOGIN"]
+            host_data["login"].append(sub_login.shape[0])
         return host_data
 
     def get_util_data(self):
         """Get memory and CPU utilisation for specific SGE queue."""
-        all_hosts = sp.check_output(["qconf", "-ss"]).split(b"\n")
-        all_hosts = [u.decode() for u in all_hosts]
-        # Filter list of hosts by node 'stem'
-        all_hosts = list(
-            filter(lambda k: self.monitor_config["node_reg_exp"] in k, all_hosts)
-        )
+        processes = sp.check_output(["qhost"])
+        all_node_infos = processes.split(b"\n")[1:-1]
+        all_node_infos = [j.decode() for j in all_node_infos]
 
-        all_cores, all_cores_util, all_mem, all_mem_util = [], [], [], []
-        # Loop over all hosts and collect the utilisation data from the
-        # cmd line qhost output
-        for host in all_hosts:
-            out = sp.check_output(["qhost", "-h", host]).split(b"\n")
-            out = [u.decode() for u in out][3].split()
-            cores, core_util, mem, mem_util = out[2], out[6], out[7], out[8]
-            all_cores.append(float(cores))
+        total_cores, used_cores, total_mem, used_mem = 0, 0, 0, 0
+        for n_info in all_node_infos:
+            node_clean = n_info.split()
             try:
-                all_cores_util.append(float(core_util) * float(cores))
+                # Cores in threads and memory in GB
+                total_cores += int(node_clean[2])
+                used_cores += float(node_clean[2]) * float(node_clean[6])
+                total_mem += float(node_clean[-4][:-1])
+                # Total memory - free memory
+                used_mem += float(node_clean[-2][:-1])
             except Exception:
-                all_cores_util.append(0)
-            all_mem.append(float(mem[:-1]))
-            all_mem_util.append(float(mem_util[:-1]))
-        return {
-            "cores": sum(all_cores),
-            "cores_util": sum(all_cores_util),
-            "mem": sum(all_mem),
-            "mem_util": sum(all_mem_util),
+                pass
+        util_data = {
+            "cores": total_cores,
+            "cores_util": used_cores,
+            "mem": total_mem,
+            "mem_util": used_mem,
             "time_date": datetime.now().strftime("%m/%d/%y"),
             "time_hour": datetime.now().strftime("%H:%M:%S"),
         }
+        return util_data
+
+    def get_node_data(self, job_df: pd.DataFrame):
+        """Get jobs running on different SGE cluster nodes."""
+        host_data = {"host_id": [], "total": [], "run": [], "login": []}
+        job_df = job_df[job_df.status != "PD"]
+        unique_nodes = job_df.node.unique().tolist()
+        for h_id in unique_nodes:
+            sub_df = job_df.loc[job_df["node"] == h_id]
+            host_data["host_id"].append(h_id)
+            host_data["total"].append(sub_df.shape[0])
+            sub_run = sub_df.loc[sub_df["status"] == "R"]
+            host_data["run"].append(sub_run.shape[0])
+            sub_login = sub_df.loc[sub_df["status"] == "LOGIN"]
+            host_data["login"].append(sub_login.shape[0])
+        return host_data
