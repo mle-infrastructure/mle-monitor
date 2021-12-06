@@ -1,3 +1,5 @@
+*.yaml
+logs_search
 old.py
 *.gif
 *.zip

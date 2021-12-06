@@ -38,7 +38,7 @@ def natural_keys(text):
     return [atoi(c) for c in re.split(r"(\d+)", text)]
 
 
-def setup_logger(logging_level: int):
+def setup_logger(logging_level: int = logging.INFO):
     logging.basicConfig(
         level=logging_level,
         format="%(message)s",

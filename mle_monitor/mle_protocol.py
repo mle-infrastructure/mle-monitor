@@ -2,6 +2,7 @@ from typing import Union, List
 from datetime import datetime
 import sys
 import select
+import logging
 from rich.console import Console
 from .protocol import (
     load_protocol_db,
@@ -10,6 +11,7 @@ from .protocol import (
     protocol_table,
     get_monitor_db_data,
 )
+from .utils import setup_logger
 
 
 class MLEProtocol(object):
@@ -23,6 +25,11 @@ class MLEProtocol(object):
         self.protocol_fname = protocol_fname
         self.cloud_settings = cloud_settings
         self.verbose = verbose
+        if self.verbose:
+            self.logger = setup_logger(logging.INFO)
+        else:
+            self.logger = setup_logger(logging.WARNING)
+
         # Setup GCS credentials/data
         if self.cloud_settings is not None:
             # Don't use sync if cloud_setting dict is empty DotMap
@@ -82,15 +89,13 @@ class MLEProtocol(object):
     def save(self, send_gcs: bool = True):
         """Dump the protocol db to its pickle file."""
         self.db.dump()
-        if self.verbose:
-            Console().log(f"Locally stored protocol: {self.protocol_fname}")
+        self.logger.info(f"Locally stored protocol: {self.protocol_fname}")
 
         # Send recent/up-to-date experiment DB to Google Cloud Storage
         if send_gcs and self.use_gcs_protocol_sync:
             if self.accessed_gcs:
                 self.gcs_send()
-                if self.verbose:
-                    Console().log(f"GCS synced protocol: {self.protocol_fname}")
+                self.logger.info(f"GCS synced protocol: {self.protocol_fname}")
 
     @property
     def standard_keys(self):
@@ -155,8 +160,7 @@ class MLEProtocol(object):
         self.last_experiment_id = new_experiment_id
         self.added_experiment_id = new_experiment_id
         self.completed_jobs_counter = 0
-        if self.verbose:
-            Console().log(f"Added experiment {new_experiment_id} to protocol.")
+        self.logger.info(f"Added experiment {new_experiment_id} to protocol.")
         if save:
             self.save(send_gcs)
         return new_experiment_id
@@ -220,8 +224,7 @@ class MLEProtocol(object):
             zip_to_store = experiment_data["e-hash"] + ".zip"
             experiment_dir = experiment_data["experiment_dir"]
             send_gcloud_zip(self.cloud_settings, experiment_dir, zip_to_store, True)
-            if self.verbose:
-                Console().log(f"Send results to GCS: {zip_to_store}")
+            self.logger.info(f"Send results to GCS: {zip_to_store}")
 
         # Update and send protocol db
         time_t = datetime.now().strftime("%m/%d/%y %H:%M")
@@ -248,8 +251,7 @@ class MLEProtocol(object):
             ],
             save=save,
         )
-        if self.verbose:
-            Console().log(f"Updated protocol - COMPLETED: {experiment_id}")
+        self.logger.info(f"Updated protocol - COMPLETED: {experiment_id}")
 
     def status(self, experiment_id: Union[int, str]) -> str:
         """Get the status of an experiment."""
@@ -347,8 +349,7 @@ class MLEProtocol(object):
         )
         self.update(experiment_id, "retrieved_results", True)
 
-        if self.verbose:
-            Console().log(f"Retrieved results from GCS bucket: {experiment_id}.")
+        self.logger.info(f"Retrieved results from GCS bucket: {experiment_id}.")
 
     def gcs_send(self):
         """Send the local protocol to a GCS bucket."""
@@ -361,10 +362,9 @@ class MLEProtocol(object):
             self.cloud_settings["protocol_fname"],
             self.protocol_fname,
         )
-        if self.verbose:
-            Console().log(
-                f"Send protocol to GCS bucket: {self.cloud_settings['bucket_name']}."
-            )
+        self.logger.info(
+            f"Send protocol to GCS bucket: {self.cloud_settings['bucket_name']}."
+        )
         return send_db
 
     def gcs_pull(self):
@@ -377,10 +377,9 @@ class MLEProtocol(object):
             self.cloud_settings["protocol_fname"],
             self.protocol_fname,
         )
-        if self.verbose:
-            Console().log(
-                f"Pulled protocol from GCS bucket: {self.cloud_settings['bucket_name']}."
-            )
+        self.logger.info(
+            f"Pulled protocol from GCS bucket: {self.cloud_settings['bucket_name']}."
+        )
         return accessed_db
 
     def __len__(self) -> int:
