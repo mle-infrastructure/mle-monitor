@@ -99,8 +99,8 @@ def protocol_table(df, full: bool = True):
     table.add_column("Type")
     table.add_column("[yellow]:arrow_forward:", justify="center")
     table.add_column("[yellow]:recycle:", justify="center")
-    table.add_column("#CPU", justify="center")
-    table.add_column("#GPU", justify="center")
+    table.add_column("CPU", justify="center")
+    table.add_column("GPU", justify="center")
     # Full option prints also resource requirements of jobs
     if full:
         table.add_column(

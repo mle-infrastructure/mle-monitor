@@ -3,6 +3,7 @@ import subprocess as sp
 from typing import Union
 import numpy as np
 import pandas as pd
+from ..utils import natural_keys
 
 
 class SGEResource(object):
@@ -90,8 +91,10 @@ class SGEResource(object):
         """Get jobs running on different SGE queues."""
         host_data = {"host_id": [], "total": [], "run": [], "login": []}
         job_df = job_df[job_df.status != "PD"]
-        unique_partitions = job_df.queue.unique().tolist()
-        for h_id in unique_partitions:
+        unique_queues = job_df.queue.unique().tolist()
+        unique_queues.sort(key=natural_keys)
+
+        for h_id in unique_queues:
             sub_df = job_df.loc[job_df["queue"] == h_id]
             host_data["host_id"].append(h_id)
             host_data["total"].append(sub_df.shape[0])
@@ -134,6 +137,8 @@ class SGEResource(object):
         host_data = {"host_id": [], "total": [], "run": [], "login": []}
         job_df = job_df[job_df.status != "PD"]
         unique_nodes = job_df.node.unique().tolist()
+        unique_nodes.sort(key=natural_keys)
+
         for h_id in unique_nodes:
             sub_df = job_df.loc[job_df["node"] == h_id]
             host_data["host_id"].append(h_id)

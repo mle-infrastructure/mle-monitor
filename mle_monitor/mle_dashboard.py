@@ -66,8 +66,8 @@ class MLEDashboard(object):
                         self.protocol.load(pull_gcs=False)
                         timer_db = time.time()
 
-                    # Every 10 minutes pull the newest DB from GCS
-                    if time.time() - timer_gcs > 600:
+                    # Every 5 minutes pull the newest DB from GCS
+                    if time.time() - timer_gcs > 300:
                         self.protocol.load()
                         timer_gcs = time.time()
                 except Exception:

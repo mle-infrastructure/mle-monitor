@@ -3,47 +3,59 @@ import os
 from mle_monitor import MLEProtocol
 
 
-def main():
-    # Define GCS settings for sync
+def run_protocol_gcs():
+    """Protocol an experiment and sync it + results in GCS bucket."""
+    # Define GCS settings - requires 'GOOGLE_APPLICATION_CREDENTIALS' env var.
     cloud_settings = {
-        "project_name": "mle-toolbox",
-        "bucket_name": "mle-protocol",
-        "use_protocol_sync": True,
-        "use_results_storage": True,
+        "project_name": "mle-toolbox",  # GCP project name
+        "bucket_name": "mle-protocol",  # GCS bucket name
+        "use_protocol_sync": True,  # Whether to sync the protocol to GCS
+        "use_results_storage": True,  # Whether to sync experiment_dir to GCS
     }
     protocol_db = MLEProtocol("mle_protocol.db", cloud_settings, verbose=True)
-    protocol_db.summary(tail=10, verbose=True)
-
-    # Ask whether to abort/delete experiment data!
-    if len(protocol_db) > 0:
-        protocol_db.ask_for_e_id(action="delete")
-        protocol_db.ask_for_e_id(action="abort")
 
     # Draft data to store in protocol
-    purpose = protocol_db.ask_for_purpose()
     meta_data = {
-        "purpose": purpose,  # Purpose of experiment
+        "purpose": "Test 123",  # Purpose of experiment
         "project_name": "MNIST",  # Project name of experiment
         "exec_resource": "local",  # Resource jobs are run on
         "experiment_dir": "log_dir",  # Experiment log storage directory
         "experiment_type": "hyperparameter-search",  # Type of experiment to run
-        "base_fname": "main.py",  # Main code script to execute
         "config_fname": "base_config.json",  # Config file path of experiment
-        "num_seeds": 5,  # Number of evaluations seeds
-        "num_total_jobs": 10,  # Number of total jobs to run
-        "num_jobs_per_batch": 5,  # Number of jobs in single batch
-        "num_job_batches": 2,  # Number of sequential job batches
-        "time_per_job": "00:05:00",  # Expected duration: days-hours-minutes
-        "num_cpus": 2,  # Number of CPUs used in job
-        "num_gpus": 1,  # Number of GPUs used in job
     }
     new_experiment_id = protocol_db.add(meta_data)
 
-    # ... train your network - create a directory
+    # ... train your network - or create a placeholder directory + file
     os.makedirs(meta_data["experiment_dir"])
+    with open(os.path.join(meta_data["experiment_dir"], "readme.txt"), "w") as f:
+        f.write("This is some example file for the mle-monitor example.")
 
+    # Store experiment_dir as .zip in GCS bucket
     protocol_db.complete(new_experiment_id)
 
 
+def retrieve_results():
+    """Retrieve the stored experiment dir from GCS bucket and unzip it."""
+    # Define GCS settings - requires 'GOOGLE_APPLICATION_CREDENTIALS' env var.
+    cloud_settings = {
+        "project_name": "mle-toolbox",  # GCP project name
+        "bucket_name": "mle-protocol",  # GCS bucket name
+        "use_protocol_sync": True,  # Whether to sync the protocol to GCS
+        "use_results_storage": True,  # Whether to sync experiment_dir to GCS
+    }
+    protocol_db = MLEProtocol("mle_protocol.db", cloud_settings, verbose=True)
+
+    # Retrieve last stored experiment from GCS bucket -> retrieved_log_dir
+    protocol_db.retrieve(protocol_db.last_experiment_id, "retrieved_log_dir/")
+
+
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Let's train a network.")
+    parser.add_argument("-retrieve", "--retrieve", action="store_true", default=False)
+    args = vars(parser.parse_args())
+    if args["retrieve"]:
+        retrieve_results()
+    else:
+        run_protocol_gcs()

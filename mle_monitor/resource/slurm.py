@@ -3,6 +3,7 @@ import subprocess as sp
 import pandas as pd
 import numpy as np
 from typing import Union
+from ..utils import natural_keys
 
 
 class SlurmResource(object):
@@ -83,6 +84,7 @@ class SlurmResource(object):
         host_data = {"host_id": [], "total": [], "run": [], "login": []}
 
         unique_partitions = job_df.partition.unique().tolist()
+        unique_partitions.sort(key=natural_keys)
         for h_id in unique_partitions:
             sub_df = job_df.loc[job_df["partition"] == h_id]
             host_data["host_id"].append(h_id)
@@ -129,6 +131,7 @@ class SlurmResource(object):
         host_data = {"host_id": [], "total": [], "run": [], "login": []}
 
         unique_nodes = job_df.node.unique().tolist()
+        unique_nodes.sort(key=natural_keys)
         for h_id in unique_nodes:
             sub_df = job_df.loc[job_df["node"] == h_id]
             host_data["host_id"].append(h_id)

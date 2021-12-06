@@ -83,16 +83,7 @@ pip install -e .
 You can run the test suite via `python -m pytest -vv tests/`. If you find a bug or are missing your favourite feature, feel free to contact me [@RobertTLange](https://twitter.com/RobertTLange) or create an issue :hugs:. Here are some features I want to implement for the next release:
 
 - [ ] `MLEResource`
-  - Speed up SGE - no longer hostnames etc.
   - Add GCP VMs
   - Add SSH servers
 - [ ] `MLEDashboard`
   - Add snapshot function
-  - Add progress bar to each experiment in protocol
-  - Add update to protocol and toolbox! `completed_jobs`/`completed_batches`
-  - Plots experiment launch/meta usage
-- [ ] Promotion
-  - Draft a tweet
-  - Get video animation for dashboard
-  - Finish notebook with dashboard screenshot
-  - Update git organisation and webpage documentation

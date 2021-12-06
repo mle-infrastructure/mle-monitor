@@ -154,6 +154,7 @@ class MLEProtocol(object):
         self.experiment_ids.append(new_experiment_id)
         self.last_experiment_id = new_experiment_id
         self.added_experiment_id = new_experiment_id
+        self.completed_jobs_counter = 0
         if self.verbose:
             Console().log(f"Added experiment {new_experiment_id} to protocol.")
         if save:
@@ -197,11 +198,11 @@ class MLEProtocol(object):
         if experiment_id is None:
             experiment_id = self.added_experiment_id
         self.load(pull_gcs)
-        experiment_data = self.get(experiment_id)
+        self.completed_jobs_counter += completed_increment
         self.update(
             experiment_id,
             "completed_jobs",
-            experiment_data["completed_jobs"] + completed_increment,
+            self.completed_jobs_counter,
             save=save,
             send_gcs=send_gcs,
         )
@@ -328,7 +329,7 @@ class MLEProtocol(object):
         from .utils import get_gcloud_zip
 
         while True:
-            if experiment_id not in self.experiment_ids:
+            if str(experiment_id) not in self.experiment_ids:
                 time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
                 print(
                     time_t, "The experiment you are trying to retrieve does not exist"

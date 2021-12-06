@@ -1,10 +1,9 @@
 import os
 import glob
 import zipfile
-import logging
-from datetime import datetime
 from typing import Union
 from google.cloud import storage
+from .helpers import setup_logger
 
 
 def send_dir_gcp(
@@ -13,8 +12,7 @@ def send_dir_gcp(
     number_of_connect_tries: int = 5,
 ):
     """Send entire dir (recursively) to Google Cloud Storage Bucket."""
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
+    logger = setup_logger()
     for i in range(number_of_connect_tries):
         try:
             client = storage.Client(cloud_settings["project_name"])
@@ -59,8 +57,7 @@ def copy_dir_gcp(
     number_of_connect_tries: int = 5,
 ):
     """Download entire dir (recursively) from Google Cloud Storage Bucket."""
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
+    logger = setup_logger()
 
     for i in range(number_of_connect_tries):
         try:
@@ -147,6 +144,7 @@ def get_gcloud_zip(
     local_dir_name: Union[None, str] = None,
 ):
     """Download zipped experiment from GCS. Unpack & clean up."""
+    logger = setup_logger()
     # Get unique hash id & download the experiment results folder
     local_hash_fname = hash_to_store + ".zip"
     gcloud_hash_fname = "experiments/" + local_hash_fname
@@ -163,11 +161,7 @@ def get_gcloud_zip(
     # Delete the zip file
     os.remove(local_hash_fname)
 
-    time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
     # Goodbye message if successful
-    print(
-        time_t,
-        f"Successfully retrieved {experiment_id}" f" - from GCS",
-    )
-    print(time_t, f"Remote Path: {gcloud_hash_fname}")
+    logger.info(f"Successfully retrieved {experiment_id}" f" - from GCS")
+    logger.info(f"Remote Path: {gcloud_hash_fname}")
     return
