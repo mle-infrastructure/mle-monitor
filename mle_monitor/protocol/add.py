@@ -153,7 +153,6 @@ def add_experiment_summary(db, experiment_type: str):
         day_dict = data["day_exp"]
         try:
             idx = data["day"].index(start_day)
-            day_dict["all"][idx] += 1
             day_dict[experiment_type][idx] += 1
             db.dadd("summary", ("day_exp", day_dict))
         except Exception:

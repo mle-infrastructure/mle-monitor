@@ -1,4 +1,5 @@
 *.yaml
+retrieved_log_dir
 logs_search
 old.py
 *.gif

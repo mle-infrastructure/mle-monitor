@@ -109,6 +109,7 @@ def update_dashboard(layout, resource_data, protocol_data, usage_data):
             border_style="yellow",
         ),
     )
+
     layout["bottom-right-3"].update(
         Panel(
             make_protocol_daily_plot(protocol_data["summary_data"]),
