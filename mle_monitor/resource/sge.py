@@ -47,9 +47,8 @@ class SGEResource(object):
         for job in all_job_infos:
             job_clean = job.decode().split(" ")
             job_clean = list(filter(None, job_clean))
-            host_ip = job_clean[-2].split("@")
+            host_ip = job_clean[7].split("@")
             job_df["user"].append(job_clean[3])
-
             if len(host_ip) > 1:
                 job_df["queue"].append(host_ip[0])
                 job_df["node"].append(host_ip[1][:-1])

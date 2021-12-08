@@ -2,7 +2,6 @@
 retrieved_log_dir
 logs_search
 old.py
-*.gif
 *.zip
 .vim-arsync
 .DS_Store

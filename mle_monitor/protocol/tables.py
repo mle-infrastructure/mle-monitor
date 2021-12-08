@@ -46,7 +46,7 @@ def protocol_summary(
         d = {
             "ID": [str(e_id) for e_id in all_experiment_ids[-tail:]],
             "Date": start_times,
-            "Project": project_names,
+            "Project": "secret",
             "Purpose": purposes,
             "Experiment Dir": exp_paths,
             "Status": statuses,

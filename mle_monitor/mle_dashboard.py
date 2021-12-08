@@ -62,7 +62,7 @@ class MLEDashboard(object):
                     )
 
                     # Every 10 seconds reload local database file
-                    if time.time() - timer_db > 10:
+                    if time.time() - timer_db > 2:
                         self.protocol.load(pull_gcs=False)
                         timer_db = time.time()
 

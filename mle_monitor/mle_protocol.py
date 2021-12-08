@@ -3,7 +3,6 @@ from datetime import datetime
 import sys
 import select
 import logging
-from rich.console import Console
 from .protocol import (
     load_protocol_db,
     protocol_summary,
@@ -181,7 +180,7 @@ class MLEProtocol(object):
         self.all_experiment_ids = list(self.db.getall())
         try:
             self.all_experiment_ids.remove("summary")
-        except:
+        except Exception:
             pass
         if len(self.all_experiment_ids) > 0:
             self.last_experiment_id = int(self.all_experiment_ids[-1])

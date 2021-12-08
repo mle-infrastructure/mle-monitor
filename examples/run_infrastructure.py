@@ -1,7 +1,7 @@
 from mle_hyperopt import RandomSearch
 from mle_scheduler import MLEQueue
 from mle_monitor import MLEProtocol
-from mle_logging import merge_config_logs, load_meta_log
+from mle_logging import load_meta_log
 
 
 def main():
@@ -44,12 +44,8 @@ def main():
     )
     queue.run()
 
-    # Merge the logs of the different random seeds and configs
-    for log_dir in queue.mle_log_dirs:
-        queue.merge_seeds(log_dir)
-    merge_config_logs(experiment_dir="logs_search/", all_run_ids=queue.mle_run_ids)
-
-    # Load meta log and get final test_loss scores
+    # Merge logs of random seeds & configs -> load & get final scores
+    queue.merge_configs(merge_seeds=True)
     meta_log = load_meta_log("logs_search/meta_log.hdf5")
     test_scores = [meta_log[r].stats.test_loss.mean[-1] for r in queue.mle_run_ids]
 
