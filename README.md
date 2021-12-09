@@ -8,7 +8,7 @@
 
 "Did I already run this experiment before? How many resources are currently available on my cluster?" If these are common questions you encounter during your daily life as a researcher, then `mle-monitor` is made for you. It provides a lightweight API for tracking your experiments using a pickle protocol database (e.g. for hyperparameter searches and/or multi-configuration/multi-seed runs). Furthermore, it comes with built-in resource monitoring on Slurm/Grid Engine clusters and local machines/servers.
 
-<img src="https://github.com/mle-infrastructure/mle-monitor/blob/main/docs/monitor-promo-gif?raw=true" alt="drawing" width="900"/>
+<img src="https://github.com/mle-infrastructure/mle-monitor/blob/main/docs/monitor-promo-gif.gif?raw=true" alt="drawing" width="900"/>
 
 `mle-monitor` provides three core functionalities:
 
@@ -16,42 +16,97 @@
 - **`MLEResource`**: A tool for obtaining server/cluster usage statistics.
 - **`MLEDashboard`**: A dashboard visualizing resource usage & experiment protocol.
 
-<img src="https://github.com/mle-infrastructure/mle-monitor/blob/main/docs/mle_monitor_structure.png?raw=true" alt="drawing" width="900"/>
-
-## The `MLEProtocol` API 🎮
+## `MLEProtocol`: Keeping Track of Your Experiments 📝
 
 ```python
 from mle_monitor import MLEProtocol
 
-# Load the protocol from a local file (create new if it doesn't exist yet)
-protocol = MLEProtocol(protocol_fname="mle_protocol.db")
+# Load protocol database or create new one -> print summary
+protocol_db = MLEProtocol("mle_protocol.db", verbose=False)
+protocol_db.summary(tail=10, verbose=True)
 
-# Add meta data of experiment
-experiment_data = {"purpose": "Test Protocol",
-                   "project_name": "MNIST",
-                   "exec_resource": "local",
-                   "experiment_dir": "log_dir",
-                   "experiment_type": "hyperparameter-search"}
+# Draft data to store in protocol & add it to the protocol
+meta_data = {
+    "purpose": "Grid search",  # Purpose of experiment
+    "project_name": "MNIST",  # Project name of experiment
+    "experiment_type": "hyperparameter-search",  # Type of experiment
+    "experiment_dir": "experiments/logs",  # Experiment directory
+    "num_total_jobs": 10,  # Number of total jobs to run
+    ...
+}
+new_experiment_id = protocol_db.add(meta_data)
 
-e_id = protocol.add(experiment_data, save=False)
+# ... train your 10 (pseudo) networks/complete respective jobs
+for i in range(10):
+    protocol_db.update_progress_bar(new_experiment_id)
 
-# Retrieve experiment data from protocol
-protocol.get(e_id)
+# Wrap up an experiment (store completion time, etc.)
+protocol_db.complete(new_experiment_id)
 ```
 
-Additionally you can synchronize the protocol with a Google Cloud Storage (GCS) bucket by providing `gcs_project_name`, `gcs_bucket_name`, `gcs_protocol_fname` & `gcs_credentials_path`.
+The meta data can contain the following keys:
 
-## The `MLEResource` API 🎮
+| Search Type           | Description | Default |
+|----------------------- | ----------- | --------------- |
+| `purpose`          |  Purpose of experiment  | `'None provided'` |
+| `project_name`        |  Project name of experiment  | `'default'` |
+| `exec_resource`    |  Resource jobs are run on | `'local'` |
+| `experiment_dir`  |  Experiment log storage directory   | `'experiments'` |
+| `experiment_type`     | Type of experiment to run | `'single'` |
+| `base_fname`     | Main code script to execute | `'main.py'` |
+| `config_fname`     | Config file path of experiment | `'base_config.yaml'` |
+| `num_seeds`     | Number of evaluations seeds | 1 |
+| `num_total_jobs`     | Number of total jobs to run | 1 |
+| `num_job_batches`     | Number of jobs in single batch | 1 |
+| `num_jobs_per_batch`     | Number of sequential job batches | 1 |
+| `time_per_job`     | Expected duration: days-hours-minutes | `'00:01:00'` |
+| `num_cpus`     | Number of CPUs used in job | 1 |
+| `num_gpus`     | Number of GPUs used in job | 0 |
 
+Additionally you can synchronize the protocol with a Google Cloud Storage (GCS) bucket by providing `cloud_settings`. In this case also the results stored in `experiment_dir` will be uploaded to the GCS bucket, when you call `protocol.complete()`.
+
+
+```python
+# Define GCS settings - requires 'GOOGLE_APPLICATION_CREDENTIALS' env var.
+cloud_settings = {
+    "project_name": "mle-toolbox",  # GCP project name
+    "bucket_name": "mle-protocol",  # GCS bucket name
+    "use_protocol_sync": True,  # Whether to sync the protocol to GCS
+    "use_results_storage": True,  # Whether to sync experiment_dir to GCS
+}
+protocol_db = MLEProtocol("mle_protocol.db", cloud_settings, verbose=True)
+```
+
+## The `MLEResource`: Keeping Track of Your Resources 📉
+
+#### On Your Local Machine
 ```python
 from mle_monitor import MLEResource
 
 # Instantiate local resource and get usage data
 resource = MLEResource(resource_name="local")
-user_data, host_data, util_data, resource_name = resource.monitor()
+resource_data = resource.monitor()
 ```
 
-## The `MLEDashboard` API 🎮
+#### On a Slurm Cluster
+
+```python
+resource = MLEResource(
+    resource_name="slurm-cluster",
+    monitor_config={"partitions": ["<partition-1>", "<partition-2>"]},
+)
+```
+
+#### On a Grid Engine Cluster
+
+```python
+resource = MLEResource(
+    resource_name="sge-cluster",
+    monitor_config={"queues": ["<queue-1>", "<queue-2>"]}
+)
+```
+
+## The `MLEDashboard`: Dashboard Visualization 🎞️
 
 ```python
 from mle_monitor import MLEDashboard
@@ -59,7 +114,7 @@ from mle_monitor import MLEDashboard
 # Instantiate dashboard with protocol and resource
 dashboard = MLEDashboard(protocol, resource)
 
-# Get a static snapshot of the protocol & resource utilisation
+# Get a static snapshot of the protocol & resource utilisation printed in console
 dashboard.snapshot()
 
 # Run monitoring in while loop - dashboard
@@ -84,10 +139,4 @@ pip install -e .
 
 ## Development & Milestones for Next Release
 
-You can run the test suite via `python -m pytest -vv tests/`. If you find a bug or are missing your favourite feature, feel free to contact me [@RobertTLange](https://twitter.com/RobertTLange) or create an issue :hugs:. Here are some features I want to implement for the next release:
-
-- [ ] `MLEResource`
-  - Add GCP VMs
-  - Add SSH servers
-- [ ] `MLEDashboard`
-  - Add snapshot function
+You can run the test suite via `python -m pytest -vv tests/`. If you find a bug or are missing your favourite feature, feel free to contact me [@RobertTLange](https://twitter.com/RobertTLange) or create an issue :hugs:.

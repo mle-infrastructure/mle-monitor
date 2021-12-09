@@ -1,15 +1,8 @@
 import logging
 import os
 from os.path import expanduser
-
-try:
-    from google.cloud import storage
-except ModuleNotFoundError as err:
-    raise ModuleNotFoundError(
-        f"{err}. You need to"
-        "install `google-cloud-storage` to use "
-        "the `mle_toolbox.remote.gcloud_transfer` module."
-    )
+from ..utils import setup_logger
+from google.cloud import storage
 
 
 def set_gcp_credentials(credentials_path: str = ""):
@@ -27,8 +20,7 @@ def get_gcloud_db(
     number_of_connect_tries: int = 5,
 ) -> int:
     """Pull latest experiment database from gcloud storage."""
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
+    logger = setup_logger()
     for i in range(number_of_connect_tries):
         try:
             # Connect to project and bucket
@@ -67,8 +59,7 @@ def send_gcloud_db(
     number_of_connect_tries: int = 5,
 ):
     """Send updated database back to gcloud storage."""
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
+    logger = setup_logger()
     for i in range(number_of_connect_tries):
         try:
             # Connect to project and bucket
