@@ -14,6 +14,8 @@
 - **`MLEResource`**: A tool for obtaining server/cluster usage statistics.
 - **`MLEDashboard`**: A dashboard visualizing resource usage & experiment protocol.
 
+To get started I recommend checking out the [colab notebook](https://colab.research.google.com/github/mle-infrastructure/mle-monitor/blob/main/examples/getting_started.ipynb) and an [example workflow](https://github.com/mle-infrastructure/mle-monitor/blob/main/examples/run_infrastructure.py).
+
 <img src="https://github.com/mle-infrastructure/mle-monitor/blob/main/docs/monitor-promo-gif.gif?raw=true" alt="drawing" width="900"/>
 
 ## `MLEProtocol`: Keeping Track of Your Experiments 📝
