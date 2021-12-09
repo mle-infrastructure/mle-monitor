@@ -82,8 +82,11 @@ class LocalResource(object):
             "logical_count": psutil.cpu_count(),
         }
         # Add GPU usage data via GPUtil
-        for k, v in self.get_nvidia_gpu_data().items():
-            device_data[k] = v
+        try:
+            for k, v in self.get_nvidia_gpu_data().items():
+                device_data[k] = v
+        except Exception:
+            pass
         return device_data
 
     def get_nvidia_gpu_data(self):
