@@ -2,8 +2,8 @@
 [![Pyversions](https://img.shields.io/pypi/pyversions/mle-monitor.svg?style=flat-square)](https://pypi.python.org/pypi/mle-monitor)
 [![PyPI version](https://badge.fury.io/py/mle-monitor.svg)](https://badge.fury.io/py/mle-monitor)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mle-infrastructure/mle-monitor/blob/main/examples/getting_started.ipynb)
 [![codecov](https://codecov.io/gh/mle-infrastructure/mle-monitor/branch/main/graph/badge.svg?token=75FIYZG8BD)](https://codecov.io/gh/mle-infrastructure/mle-monitor)
+[![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mle-infrastructure/mle-monitor/blob/main/examples/getting_started.ipynb)
 <a href="https://github.com/mle-infrastructure/mle-monitor/blob/main/docs/logo_transparent.png?raw=true"><img src="https://github.com/mle-infrastructure/mle-monitor/blob/main/docs/logo_transparent.png?raw=true" width="200" align="right" /></a>
 
 "Did I already run this experiment before? How many resources are currently available on my cluster?" If these are common questions you encounter during your daily life as a researcher, then `mle-monitor` is made for you. It provides a lightweight API for tracking your experiments using a pickle protocol database (e.g. for hyperparameter searches and/or multi-configuration/multi-seed runs). Furthermore, it comes with built-in resource monitoring on Slurm/Grid Engine clusters and local machines/servers.
