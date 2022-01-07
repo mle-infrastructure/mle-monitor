@@ -88,6 +88,10 @@ class MLEProtocol(object):
     def save(self, send_gcs: bool = True):
         """Dump the protocol db to its pickle file."""
         self.db.dump()
+        if self.verbose:
+            self.logger = setup_logger(logging.INFO)
+        else:
+            self.logger = setup_logger(logging.WARNING)
         self.logger.info(f"Locally stored protocol: {self.protocol_fname}")
 
         # Send recent/up-to-date experiment DB to Google Cloud Storage

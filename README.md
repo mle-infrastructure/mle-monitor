@@ -139,6 +139,19 @@ cd mle-monitor
 pip install -e .
 ```
 
-## Development & Milestones for Next Release
+### Citing the MLE-Infrastructure ✏️
 
-You can run the test suite via `python -m pytest -vv tests/`. If you find a bug or are missing your favourite feature, feel free to contact me [@RobertTLange](https://twitter.com/RobertTLange) or create an issue :hugs:.
+If you use `mle-monitor` in your research, please cite it as follows:
+
+```
+@software{mle_infrastructure2021github,
+  author = {Robert Tjarko Lange},
+  title = {{MLE-Infrastructure}: A Set of Lightweight Tools  for Distributed Machine Learning Experimentation},
+  url = {http://github.com/mle-infrastructure},
+  year = {2021},
+}
+```
+
+## Development 👷
+
+You can run the test suite via `python -m pytest -vv tests/`. If you find a bug or are missing your favourite feature, feel free to create an issue and/or start [contributing](CONTRIBUTING.md) :hugs:.

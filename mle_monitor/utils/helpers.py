@@ -45,6 +45,6 @@ def setup_logger(logging_level: int = logging.INFO):
         datefmt="[%X]",
         handlers=[RichHandler()],
     )
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger()
     logger.setLevel(logging_level)
     return logger
