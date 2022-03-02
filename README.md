@@ -131,12 +131,10 @@ A PyPI installation is available via:
 pip install mle-monitor
 ```
 
-Alternatively, you can clone this repository and afterwards 'manually' install it:
+If you want to get the most recent commit, please install directly from the repository:
 
 ```
-git clone https://github.com/mle-infrastructure/mle-monitor.git
-cd mle-monitor
-pip install -e .
+pip install git+https://github.com/mle-infrastructure/mle-monitor.git@main
 ```
 
 ### Citing the MLE-Infrastructure ✏️
@@ -146,7 +144,7 @@ If you use `mle-monitor` in your research, please cite it as follows:
 ```
 @software{mle_infrastructure2021github,
   author = {Robert Tjarko Lange},
-  title = {{MLE-Infrastructure}: A Set of Lightweight Tools  for Distributed Machine Learning Experimentation},
+  title = {{MLE-Infrastructure}: A Set of Lightweight Tools for Distributed Machine Learning Experimentation},
   url = {http://github.com/mle-infrastructure},
   year = {2021},
 }
@@ -154,4 +152,4 @@ If you use `mle-monitor` in your research, please cite it as follows:
 
 ## Development 👷
 
-You can run the test suite via `python -m pytest -vv tests/`. If you find a bug or are missing your favourite feature, feel free to create an issue and/or start [contributing](CONTRIBUTING.md) :hugs:.
+You can run the test suite via `python -m pytest -vv tests/`. If you find a bug or are missing your favourite feature, feel free to create an issue and/or start [contributing](CONTRIBUTING.md) 🤗.

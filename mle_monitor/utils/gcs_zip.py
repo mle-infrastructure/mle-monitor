@@ -2,7 +2,6 @@ import os
 import glob
 import zipfile
 from typing import Union
-from google.cloud import storage
 from .helpers import setup_logger
 
 
@@ -12,11 +11,20 @@ def send_dir_gcp(
     number_of_connect_tries: int = 5,
 ):
     """Send entire dir (recursively) to Google Cloud Storage Bucket."""
+    try:
+        from google.cloud import storage
+
+    except ImportError:
+        raise ImportError(
+            "You need to install `google-cloud-storage` to use GCP buckets."
+        )
     logger = setup_logger()
     for i in range(number_of_connect_tries):
         try:
             client = storage.Client(cloud_settings["project_name"])
-            bucket = client.get_bucket(cloud_settings["bucket_name"], timeout=20)
+            bucket = client.get_bucket(
+                cloud_settings["bucket_name"], timeout=20
+            )
         except Exception:
             logger.info(
                 f"Attempt {i+1}/{number_of_connect_tries}"
@@ -57,16 +65,25 @@ def copy_dir_gcp(
     number_of_connect_tries: int = 5,
 ):
     """Download entire dir (recursively) from Google Cloud Storage Bucket."""
+    try:
+        from google.cloud import storage
+
+    except ImportError:
+        raise ImportError(
+            "You need to install `google-cloud-storage` to use GCP buckets."
+        )
     logger = setup_logger()
 
     for i in range(number_of_connect_tries):
         try:
             client = storage.Client(cloud_settings["project_name"])
-            bucket = client.get_bucket(cloud_settings["bucket_name"], timeout=20)
+            bucket = client.get_bucket(
+                cloud_settings["bucket_name"], timeout=20
+            )
         except Exception:
             logger.info(
                 f"Attempt {i+1}/{number_of_connect_tries}"
-                f" - Failed sending to GCloud Storage"
+                " - Failed sending to GCloud Storage"
             )
 
     blobs = bucket.list_blobs(prefix=remote_dir)  # Get list of files
@@ -110,7 +127,8 @@ def zipdir(path: str, zip_fname: str):
     for root, dirs, files in os.walk(path):
         for file in files:
             ziph.write(
-                os.path.join(root, file), os.path.join(root[prefix_len + 1 :], file)
+                os.path.join(root, file),
+                os.path.join(root[prefix_len + 1 :], file),
             )
     ziph.close()
 
@@ -162,6 +180,6 @@ def get_gcloud_zip(
     os.remove(local_hash_fname)
 
     # Goodbye message if successful
-    logger.info(f"Successfully retrieved {experiment_id}" f" - from GCS")
+    logger.info(f"Successfully retrieved {experiment_id} - from GCS")
     logger.info(f"Remote Path: {gcloud_hash_fname}")
     return

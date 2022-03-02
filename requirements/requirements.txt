@@ -1,13 +1,9 @@
-google-cloud-storage
-GitPython
 pyyaml
 commentjson
 dotmap
 numpy
 pandas
 rich
-psutil
-gputil
 pickledb
-plotext
+plotext==4.0.0
 Pillow

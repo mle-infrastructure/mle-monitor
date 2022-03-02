@@ -35,7 +35,9 @@ class MLEProtocol(object):
             if len(self.cloud_settings.keys()) > 0:
                 assert self.cloud_settings["project_name"] is not None
                 assert self.cloud_settings["bucket_name"] is not None
-                self.use_gcs_protocol_sync = self.cloud_settings["use_protocol_sync"]
+                self.use_gcs_protocol_sync = self.cloud_settings[
+                    "use_protocol_sync"
+                ]
                 self.use_gcs_protocol_storage = self.cloud_settings[
                     "use_results_storage"
                 ]
@@ -65,9 +67,11 @@ class MLEProtocol(object):
                 self.accessed_gcs = False
         else:
             self.accessed_gcs = False
-        self.db, self.experiment_ids, self.last_experiment_id = load_protocol_db(
-            self.protocol_fname
-        )
+        (
+            self.db,
+            self.experiment_ids,
+            self.last_experiment_id,
+        ) = load_protocol_db(self.protocol_fname)
 
     def get(
         self,
@@ -169,7 +173,10 @@ class MLEProtocol(object):
         return new_experiment_id
 
     def abort(
-        self, experiment_id: Union[int, str], save: bool = True, send_gcs: bool = True
+        self,
+        experiment_id: Union[int, str],
+        save: bool = True,
+        send_gcs: bool = True,
     ):
         """Abort an experiment - change status in db."""
         self.db.dadd(str(experiment_id), ("job_status", "aborted"))
@@ -177,7 +184,10 @@ class MLEProtocol(object):
             self.save(send_gcs)
 
     def delete(
-        self, experiment_id: Union[int, str], save: bool = True, send_gcs: bool = True
+        self,
+        experiment_id: Union[int, str],
+        save: bool = True,
+        send_gcs: bool = True,
     ):
         """Delete an experiment - change status in db."""
         self.db.drem(str(experiment_id))
@@ -204,18 +214,24 @@ class MLEProtocol(object):
         """Update progress bar of completed jobs using an integer increment."""
         if experiment_id is None:
             experiment_id = self.added_experiment_id
-        self.load(pull_gcs)
-        self.completed_jobs_counter += completed_increment
-        self.update(
-            experiment_id,
-            "completed_jobs",
-            self.completed_jobs_counter,
-            save=save,
-            send_gcs=send_gcs,
-        )
+            self.completed_jobs_counter += completed_increment
+        try:
+            self.load(pull_gcs)
+            self.update(
+                experiment_id,
+                "completed_jobs",
+                self.completed_jobs_counter,
+                save=save,
+                send_gcs=send_gcs,
+            )
+        except Exception:
+            pass
 
     def complete(
-        self, experiment_id: Union[int, str], report: bool = False, save: bool = True
+        self,
+        experiment_id: Union[int, str],
+        report: bool = False,
+        save: bool = True,
     ):
         """Set status of an experiment to completed - change status in db."""
         self.load()
@@ -226,13 +242,17 @@ class MLEProtocol(object):
 
             zip_to_store = experiment_data["e-hash"] + ".zip"
             experiment_dir = experiment_data["experiment_dir"]
-            send_gcloud_zip(self.cloud_settings, experiment_dir, zip_to_store, True)
+            send_gcloud_zip(
+                self.cloud_settings, experiment_dir, zip_to_store, True
+            )
             self.logger.info(f"Send results to GCS: {zip_to_store}")
 
         # Update and send protocol db
         time_t = datetime.now().strftime("%m/%d/%y %H:%M")
         stop_time = datetime.strptime(time_t, "%m/%d/%y %H:%M")
-        start_time = datetime.strptime(experiment_data["start_time"], "%m/%d/%y %H:%M")
+        start_time = datetime.strptime(
+            experiment_data["start_time"], "%m/%d/%y %H:%M"
+        )
         duration = str(stop_time - start_time)
         self.update(
             experiment_id,
@@ -288,7 +308,9 @@ class MLEProtocol(object):
         full: bool = False,
     ):
         """Print a rich summary table of all experiments in db."""
-        summary = protocol_summary(self.db, self.experiment_ids, tail, verbose, full)
+        summary = protocol_summary(
+            self.db, self.experiment_ids, tail, verbose, full
+        )
         if return_table:
             return protocol_table(summary, full)
         return summary
@@ -337,7 +359,8 @@ class MLEProtocol(object):
             if str(experiment_id) not in self.experiment_ids:
                 time_t = datetime.now().strftime("%m/%d/%Y %I:%M:%S %p")
                 print(
-                    time_t, "The experiment you are trying to retrieve does not exist"
+                    time_t,
+                    "The experiment you are trying to retrieve does not exist",
                 )
                 experiment_id = input(
                     time_t + " Which experiment do you want to retrieve?"
@@ -366,7 +389,8 @@ class MLEProtocol(object):
             self.protocol_fname,
         )
         self.logger.info(
-            f"Send protocol to GCS bucket: {self.cloud_settings['bucket_name']}."
+            "Send protocol to GCS bucket:"
+            f" {self.cloud_settings['bucket_name']}."
         )
         return send_db
 
@@ -381,7 +405,8 @@ class MLEProtocol(object):
             self.protocol_fname,
         )
         self.logger.info(
-            f"Pulled protocol from GCS bucket: {self.cloud_settings['bucket_name']}."
+            "Pulled protocol from GCS bucket:"
+            f" {self.cloud_settings['bucket_name']}."
         )
         return accessed_db
 

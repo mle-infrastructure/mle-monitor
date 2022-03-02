@@ -26,10 +26,14 @@ def protocol_experiment(
         for k, v in extra.items():
             db.dadd(new_experiment_id, (k, v))
 
-    # Add the git latest commit hash
     try:
         import git
 
+    except ImportError:
+        print("You need to install `GitPython` to use git hash protocolling.")
+
+    # Add the git latest commit hash
+    try:
         g = git.Repo(search_parent_directories=True)
         git_hash = g.head.object.hexsha
     except Exception:
@@ -46,7 +50,7 @@ def protocol_experiment(
 
     loaded_configs = []
     for config_path in all_config_paths:
-        fname, fext = os.path.splitext(config_path)
+        _, fext = os.path.splitext(config_path)
         if fext == ".json":
             base_config = load_json_config(config_path)
         elif fext == ".yaml":
@@ -92,7 +96,11 @@ def estimate_experiment_duration(
     hours_add, tot_mins = divmod(total_batches * int(minutes), 60)
     days_add, tot_hours = divmod(total_batches * int(hours) + hours_add, 24)
     tot_days = total_batches * int(days) + days_add
-    tot_days, tot_hours, tot_mins = (str(tot_days), str(tot_hours), str(tot_mins))
+    tot_days, tot_hours, tot_mins = (
+        str(tot_days),
+        str(tot_hours),
+        str(tot_mins),
+    )
     if len(tot_days) < 2:
         tot_days = tot_days
     if len(tot_hours) < 2:

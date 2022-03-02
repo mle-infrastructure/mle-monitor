@@ -26,10 +26,12 @@ class MLEDashboard(object):
         protocol_data = self.protocol.monitor()
         usage_data = self.tracker.update(resource_data["util_data"])
         # Update the layout and print it
-        layout = update_dashboard(layout, resource_data, protocol_data, usage_data)
+        layout = update_dashboard(
+            layout, resource_data, protocol_data, usage_data
+        )
         Console().print(layout)
 
-    def live(self):
+    def live(self, pull_gcs: bool = False):
         """Run constant monitoring in while loop."""
         # Generate the dashboard layout and display first data
         layout = layout_dashboard(
@@ -41,7 +43,9 @@ class MLEDashboard(object):
         resource_data = self.resource.monitor()
         protocol_data = self.protocol.monitor()
         usage_data = self.tracker.update(resource_data["util_data"])
-        layout = update_dashboard(layout, resource_data, protocol_data, usage_data)
+        layout = update_dashboard(
+            layout, resource_data, protocol_data, usage_data
+        )
 
         # Start timers for GCS pulling and reloading of local protocol db
         timer_gcs = time.time()
@@ -55,7 +59,8 @@ class MLEDashboard(object):
                     resource_data = self.resource.monitor()
                     protocol_data = self.protocol.monitor()
                     usage_data = self.tracker.update(
-                        resource_data["util_data"], protocol_data["summary_data"]
+                        resource_data["util_data"],
+                        protocol_data["summary_data"],
                     )
                     layout = update_dashboard(
                         layout, resource_data, protocol_data, usage_data
@@ -67,8 +72,9 @@ class MLEDashboard(object):
                         timer_db = time.time()
 
                     # Every 5 minutes pull the newest DB from GCS
-                    if time.time() - timer_gcs > 300:
-                        self.protocol.load()
-                        timer_gcs = time.time()
+                    if pull_gcs:
+                        if time.time() - timer_gcs > 300:
+                            self.protocol.load()
+                            timer_gcs = time.time()
                 except Exception:
                     pass

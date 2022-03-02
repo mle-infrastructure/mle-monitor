@@ -1,7 +1,5 @@
 from datetime import datetime
 import numpy as np
-import psutil
-import GPUtil
 from typing import Union
 
 
@@ -25,12 +23,10 @@ class LocalResource(object):
             "mem_util": [],
             "cpu_util": [],
             "cmdline": [],
-            "total_cpu_util": psutil.cpu_count() * psutil.cpu_percent(),
-            "total_mem_util": (psutil.virtual_memory()._asdict()["used"] / 1000000),
         }
 
         # Get top 5 most memory/cpu demanding processes on local machine
-        mem_sort, cpu_sort = self.get_cpu_processes()
+        mem_sort, cpu_sort, total_cpu, total_mem = self.get_cpu_processes()
 
         for p in cpu_sort:
             proc_data["pid"].append(p["pid"])
@@ -45,21 +41,38 @@ class LocalResource(object):
             proc_data["mem_util"].append(p["vms"])
             proc_data["cpu_util"].append(p["cpu_percent"])
             proc_data["cmdline"].append(p["cmdline"])
+
+        proc_data["total_cpu_util"] = total_cpu
+        proc_data["total_mem_util"] = total_mem
         return proc_data
 
     def get_cpu_processes(self, top_k: int = 6):
         """Get list of process sorted by Memory (MB)/CPU Usage (CPU%)."""
+        try:
+            import psutil
+
+        except ImportError:
+            raise ImportError(
+                "You need to install `psutil` to monitor CPU processes."
+            )
+
         listOfProcObjects = []
         # Iterate over the list
         for proc in psutil.process_iter():
             try:
                 # Fetch process details as dict
-                pinfo = proc.as_dict(attrs=["pid", "name", "username", "cmdline"])
+                pinfo = proc.as_dict(
+                    attrs=["pid", "name", "username", "cmdline"]
+                )
                 pinfo["vms"] = proc.memory_info().vms / (1024 * 1024 * 1000)
                 pinfo["cpu_percent"] = proc.cpu_percent()
                 # Append dict to list
                 listOfProcObjects.append(pinfo)
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            except (
+                psutil.NoSuchProcess,
+                psutil.AccessDenied,
+                psutil.ZombieProcess,
+            ):
                 pass
 
         # Sort list of dict by key vms i.e. memory usage
@@ -67,12 +80,30 @@ class LocalResource(object):
             listOfProcObjects, key=lambda procObj: procObj["vms"], reverse=True
         )
         sorted_by_cpu = sorted(
-            listOfProcObjects, key=lambda procObj: procObj["cpu_percent"], reverse=True
+            listOfProcObjects,
+            key=lambda procObj: procObj["cpu_percent"],
+            reverse=True,
         )
-        return sorted_by_memory[:top_k], sorted_by_cpu[:top_k]
+
+        total_cpu = psutil.cpu_count() * psutil.cpu_percent()
+        total_mem = psutil.virtual_memory()._asdict()["used"] / 1000000
+        return (
+            sorted_by_memory[:top_k],
+            sorted_by_cpu[:top_k],
+            total_cpu,
+            total_mem,
+        )
 
     def get_device_data(self):
         """Get utilization per core."""
+        try:
+            import psutil
+
+        except ImportError:
+            raise ImportError(
+                "You need to install `psutil` to monitor CPU processes."
+            )
+
         device_data = {
             "core_id": np.arange(1, psutil.cpu_count() + 1),
             "percent_util": [
@@ -91,6 +122,13 @@ class LocalResource(object):
 
     def get_nvidia_gpu_data(self):
         """Helper function to get NVIDIA GPU utilisation."""
+        try:
+            import GPUtil
+
+        except ImportError:
+            raise ImportError(
+                "You need to install `gputil` to monitor GPU processes."
+            )
         gpus = GPUtil.getGPUs()
         gpu_data = {
             "gpu_id": [],
@@ -115,6 +153,13 @@ class LocalResource(object):
 
     def get_util_data(self):
         """Get memory and CPU utilisation for specific local machine."""
+        try:
+            import psutil
+
+        except ImportError:
+            raise ImportError(
+                "You need to install `psutil` to monitor CPU processes."
+            )
         num_cpus = psutil.cpu_count()
         total_mem = psutil.virtual_memory()._asdict()["total"] / 1000000000
         used_mem = psutil.virtual_memory()._asdict()["used"] / 1000000000

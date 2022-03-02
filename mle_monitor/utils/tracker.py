@@ -36,8 +36,8 @@ class Tracker(object):
         """Creates a hidden file storing usage time series data."""
         try:
             data = np.load(self.fname)
-            self.mem_util = data[:, 0].astype(np.float).tolist()
-            self.cpu_util = data[:, 1].astype(np.float).tolist()
+            self.mem_util = data[:, 0].astype(float).tolist()
+            self.cpu_util = data[:, 1].astype(float).tolist()
             self.times_date = data[:, 2].tolist()
             self.times_hour = data[:, 3].tolist()
         except Exception:
