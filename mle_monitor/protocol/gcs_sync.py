@@ -40,7 +40,10 @@ def get_gcloud_db(
             return 1
         except Exception as ex:
             # Remove empty file - causes error otherwise when trying to load
-            os.remove(expanduser(local_protocol_fname))
+            try:
+                os.remove(expanduser(local_protocol_fname))
+            except Exception:
+                pass
             if type(ex).__name__ == "NotFound":
                 logger.info(
                     f"No DB found in GCloud Storage - {gcs_protocol_fname}"
