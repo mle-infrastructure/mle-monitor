@@ -1,10 +1,9 @@
-## [v0.0.2] - [Unreleased]
-
-### Added
+## [v0.0.2] - [03/2022]
 
 ### Changed
 
-### Fixed
+- Restructure requirements and installations.
+- Update notebook.
 
 ## [v0.0.1] - [12/09/2021]
 
